@@ -1,0 +1,12 @@
+# CI環境で必要な最小限のパッケージ（静的解析ツールのみ）
+black==25.1.0
+flake8==7.1.2
+flake8-annotations==3.1.1
+pep8-naming==0.15.1
+flake8-docstrings==1.7.0
+darglint==1.8.1
+isort==5.13.2
+mypy==1.17.1
+
+# 軽量な基本ライブラリ（一部のmypy型チェックで必要な場合のみ）
+tqdm==4.66.4
