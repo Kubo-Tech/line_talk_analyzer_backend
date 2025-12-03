@@ -1,0 +1,24 @@
+services:
+  line_talk_analyzer:
+    build: .
+    container_name: line-container
+    working_dir: /line_talk_analyzer_backend
+    volumes:
+      # プロジェクト全体をマウント
+      - .:/line_talk_analyzer_backend
+
+    # ポートマッピング（必要に応じて調整）
+    ports:
+      - "8888:8888"  # Jupyter Notebook用
+      - "8000:8000"  # 開発サーバー用
+
+    # 環境変数（必要に応じて追加）
+    environment:
+      - PYTHONPATH=/line_talk_analyzer_backend
+
+    # コンテナを起動したままにする
+    tty: true
+    stdin_open: true
+
+    # デフォルトコマンド
+    command: /bin/bash
