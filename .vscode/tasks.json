@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run isort check on current file",
+      "type": "shell",
+      "command": "isort",
+      "args": [
+        "--profile=black",
+        "--line-length=100",
+        "--check-only",
+        "--diff",
+        "${file}"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run flake8 on current file",
+      "type": "shell",
+      "command": "flake8",
+      "args": [
+        "${file}",
+        "--max-line-length=100",
+        "--ignore=E203,W503,ANN101,ANN204,ANN401,D105,D107,D403,D415,DAR101,DAR201",
+        "--select=E,W,F,N,D",
+        "--docstring-convention=google",
+        "--statistics"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run mypy on current file",
+      "type": "shell",
+      "command": "mypy",
+      "args": [
+        "${file}",
+        "--config-file=mypy.ini"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run all CI checks on current file",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Run isort check on current file",
+        "Run flake8 on current file",
+        "Run mypy on current file"
+      ],
+      "group": "build"
+    }
+  ]
+}

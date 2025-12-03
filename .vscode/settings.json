@@ -1,0 +1,212 @@
+{
+    // flake8の設定
+        // E203: whitespace before ':'（Blackと競合する）
+        // W503: line break before binary operator
+        // ANN101: Missing type annotation for self in method
+        // ANN204: Missing return type annotation for special method
+        // ANN401: Dynamically typed expressions (typing.Any) are disallowed
+        // D105: Missing docstring in magic method
+        // D107: Missing docstring in __init__
+        // D415: First line should end with a period, question mark, or exclamation point
+        // DAR101: Missing parameter(s) in Docstring
+        // DAR201: Missing "Returns" in Docstring
+    "flake8.args": [
+        "--max-line-length=100", // 最大文字数
+        "--ignore=E203,W503,ANN101,ANN204,ANN401,D105,D107,D403,D415,DAR101,DAR201",  // 無視するエラーコード
+        "--select=E,W,F,N,D", // E: Error, W: Warning, F: Fatal, N: Naming, D: Docstring
+        "--docstring-convention=google", // Googleスタイルのdocstringを使用
+    ],
+    // blackの設定
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter", // 拡張機能のBlack Formatterを使う場合には必ず指定する
+        "editor.formatOnSave": true // ファイルの保存時にフォーマットを自動実行する場合
+    },
+    "[jupyter]": {
+        "editor.defaultFormatter": "ms-python.black-formatter", // ipynbファイルにもBlackを適用
+        "editor.formatOnSave": true
+    },
+    "black-formatter.args": [
+        "--line-length=100" // 最大文字数
+    ],
+    // mypyの設定
+    "mypy-type-checker.path": [
+        "/usr/local/bin/mypy"
+    ],
+    "mypy-type-checker.args": [
+    "--config-file=/KeibaAI/mypy.ini"
+    ],
+    // isortの設定
+    "isort.path": [
+        "/usr/local/bin/isort" // isort（Pythonのimport整理ツール）のパスを指定（Linux/macOS用）。
+    ],
+    "isort.args": [
+        "--profile=black",  // Blackの設定を適用
+        "--line-length=100", // 最大文字数
+    ],
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit" // 保存時にimportを整理するが、明示的に指定されたもののみ適用。
+    },
+    // Jupyter Notebook で isort を有効にする（VSCode の拡張機能が対応していない場合）
+    "notebook.formatOnSave.enabled": true,
+    // markdownのlinter
+    "markdownlint.config": {
+        "MD033": false // <br>タグを許可
+    },
+    // 検索から除外するフォルダ
+    "search.exclude": {
+    "data/": true,
+    "html/": true,
+    "trush/": true,
+    ".mypy_cache/": true,
+    },
+    // Code Spell Checkerで除外する単語
+    "cSpell.words": [
+        "keiba",
+        "shutuba",
+        "umabashira",
+        "waku",
+        "keibajo",
+        "shiba",
+        "kyori",
+        "ninki",
+        "baken",
+        "kaisai",
+        "bashin",
+        "netkeiba",
+        "IPAT",
+        "inetid",
+        "ososugi",
+        "TEKICHU",
+        "KITAICHI",
+        "YYYYMMDDKKRR",
+        "rtol",
+        "ndarray",
+        "argwhere",
+        "forcelist",
+        "nrows",
+        "sref",
+        "tabindex",
+        "isin",
+        "corrcoef",
+        "linalg",
+        "trueskill",
+        "antialiasing",
+        "levelname",
+        "birthyear",
+        "colwidth",
+        "figsize",
+        "axhline",
+        "axvline",
+        "linestyle",
+        "xlabel",
+        "ylabel",
+        "xticks",
+        "yticks",
+        "fontsize",
+        "markersize",
+        "markerfacecolor",
+        "markeredgewidth",
+        "markeredgecolor",
+        "facecolor",
+        "xlim",
+        "ylim",
+        "labelsize",
+        "annot",
+        "xticklabels",
+        "yticklabels",
+        "viridis",
+        "barplot",
+        "mypy",
+        "isort",
+        "black",
+        "flake8",
+        "Hiragino",
+        "Meiryo",
+        "IPAPGothic",
+        "Noto",
+        "fontweight",
+        "hoge",
+        "hogehoge",
+        "foo",
+        "bar",
+        "baz",
+        "qux",
+        "quux",
+        "fuga",
+        "fugafuga",
+        "piyo",
+        "piyopiyo",
+        "chromedriver",
+        "PYTHONPATH",
+        "ipykernel",
+        "qiita",
+        "publickey",
+        "firebaserc",
+        "ipynb",
+        "noqa",
+        "abspath",
+        "dataclass",
+        "Kubo",
+        "elif",
+        "edgecolor",
+        "verticalalignment",
+        "horizontalalignment",
+        "boxstyle",
+        "frameon",
+        "fancybox",
+        "framealpha",
+        "handlelength",
+        "handletextpad",
+        "columnspacing",
+        "logloss",
+        "gbdt",
+        "bynode",
+        "xgboost",
+        "onehot",
+        "cegb",
+        "lambdarank",
+        "tweedie",
+        "textcoords",
+        "xytext",
+        "marimo",
+        "hstack",
+        "steelblue",
+        "xaxis",
+        "yaxis",
+        "qcut",
+        "scaleanchor",
+        "scaleratio",
+        "endgroup",
+        "maxfev",
+        "plackett",
+        "nansum",
+        "boldsymbol",
+        "pmatrix",
+        "bmatrix",
+        "pinv",
+        "NIGE",
+        "SENKO",
+        "SASHI",
+        "mypy",
+    ],
+    // GitHub Copilot Chatの設定
+    "github.copilot.chat.reviewSelection.instructions": [
+        {
+            "file": "./doc/コーディング規約.md"
+        }
+    ],
+    "github.copilot.chat.codeGeneration.instructions": [
+        {
+            "file": "./doc/コーディング規約.md"
+        },
+        {
+            "file": "./doc/directory_structure.md"
+        },
+        {
+            "file": "./doc/how_to_use_param.md"
+        },
+        {
+            "file": "./doc/how_to_use_file_io.md"
+        },
+    ],
+}
