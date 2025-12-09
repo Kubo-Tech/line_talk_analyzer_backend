@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     xz-utils \
     file \
-    sudo \
     patch \
     && rm -rf /var/lib/apt/lists/*
 
