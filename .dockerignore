@@ -45,10 +45,10 @@ htmlcov/
 *~
 .DS_Store
 
-# ドキュメント
+# ドキュメント（開発用のみ、実行時不要）
+doc/
 *.md
 !README.md
-doc/
 
 # ログファイル
 *.log
