@@ -57,11 +57,6 @@ doc/
 .env
 .env.local
 
-# Docker関連
-Dockerfile
-docker-compose.yml
-.dockerignore
-
 # CI/CD
 .github/
 
