@@ -1,49 +1,43 @@
 # ベースイメージ
-FROM python:3.12.4
+FROM python:3.11-slim
 
 # 作業ディレクトリを設定
-WORKDIR /line_talk_analyzer_backend
+WORKDIR /app
 
-# 必要なパッケージをインストール
+# MeCabとmecab-ipadic-neologdのインストールに必要なパッケージ
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    gnupg \
-    unzip \
-    fonts-noto-cjk \
-    libnss3 \
-    libatk1.0-0 \
-    libpangocairo-1.0-0 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libcups2 \
-    libxss1 \
-    libxtst6 \
+    mecab \
+    libmecab-dev \
+    mecab-ipadic-utf8 \
+    git \
+    make \
+    curl \
+    xz-utils \
+    file \
+    sudo \
+    patch \
     && rm -rf /var/lib/apt/lists/*
 
+# mecab-ipadic-neologdのインストール
+RUN git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git /tmp/neologd \
+    && /tmp/neologd/bin/install-mecab-ipadic-neologd -n -y \
+    && rm -rf /tmp/neologd
+
+# MeCabの設定ファイルへのシンボリックリンクを作成
+RUN ln -s /etc/mecabrc /usr/local/etc/mecabrc
+
 # 依存ライブラリをコピー
-COPY requirements.txt /line_talk_analyzer_backend/
+COPY requirements.txt /app/
 
 # 必要なライブラリをインストール
-RUN pip install --no-cache-dir -r /line_talk_analyzer_backend/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /app/requirements.txt
 
-# ipykernel をインストール（requirements.txt に含めてもよいが、環境全体に必要なものと区別するため直接 Dockerfile で指定する）
-RUN pip install --no-cache-dir ipykernel
+# アプリケーションコードをコピー
+COPY . /app/
 
-# mypy 型チェック用のスタブパッケージを追加
-RUN pip install --no-cache-dir types-PyYAML types-requests
+# ポート8000を公開
+EXPOSE 8000
 
-# 基本的なディレクトリ構造を作成
-RUN mkdir -p /line_talk_analyzer_backend/src
-
-# デフォルトで実行するコマンド
-CMD ["/bin/bash"]
+# FastAPIアプリケーションを起動
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
