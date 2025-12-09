@@ -1,24 +1,17 @@
 services:
-  line_talk_analyzer:
+  api:
     build: .
-    container_name: line-container
-    working_dir: /line_talk_analyzer_backend
+    container_name: line-talk-analyzer-api
+    working_dir: /app
     volumes:
-      # プロジェクト全体をマウント
-      - .:/line_talk_analyzer_backend
-
-    # ポートマッピング（必要に応じて調整）
+      # プロジェクト全体をマウント（開発時のホットリロード用）
+      - .:/app
     ports:
-      - "8888:8888"  # Jupyter Notebook用
-      - "8000:8000"  # 開発サーバー用
-
-    # 環境変数（必要に応じて追加）
+      - "8000:8000"  # FastAPI用
     environment:
-      - PYTHONPATH=/line_talk_analyzer_backend
-
-    # コンテナを起動したままにする
-    tty: true
-    stdin_open: true
-
-    # デフォルトコマンド
-    command: /bin/bash
+      - PYTHONPATH=/app
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - APP_NAME=LINE Talk Analyzer
+      - APP_VERSION=1.0.0
+    # FastAPIサーバーを自動起動（開発時はホットリロード有効）
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
