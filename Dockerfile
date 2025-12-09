@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     file \
     patch \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # mecab-ipadic-neologdのインストール
