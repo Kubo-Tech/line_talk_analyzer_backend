@@ -159,6 +159,7 @@ class TestLineMessageParser:
 
         assert len(messages) == 3
         assert "😊" in messages[0].content
+        assert messages[1].content == "今日は\t良い天気"  # タブ文字を含むメッセージ
         assert messages[2].content == "100%満足！"
 
     def test_parse_empty_file(self) -> None:
@@ -241,6 +242,11 @@ class TestLineMessageParser:
         assert parser._parse_date_line("2024-08-01(木)") is None
         assert parser._parse_date_line("2024/08/01") is None
         assert parser._parse_date_line("普通の文字列") is None
+
+        # 無効な日付（正規表現にはマッチするが日付として無効）
+        assert parser._parse_date_line("2024/13/01(月)") is None  # 月が範囲外
+        assert parser._parse_date_line("2024/02/30(金)") is None  # 日が範囲外
+        assert parser._parse_date_line("2024/00/15(土)") is None  # 月が0
 
     def test_parse_message_line(self) -> None:
         """メッセージ行解析メソッドのテスト"""

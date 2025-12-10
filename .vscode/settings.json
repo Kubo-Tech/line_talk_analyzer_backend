@@ -7,12 +7,14 @@
         // ANN401: Dynamically typed expressions (typing.Any) are disallowed
         // D105: Missing docstring in magic method
         // D107: Missing docstring in __init__
+        // D400: First line should end with a period
+        // D403: First word of the first line should be properly capitalized
         // D415: First line should end with a period, question mark, or exclamation point
         // DAR101: Missing parameter(s) in Docstring
         // DAR201: Missing "Returns" in Docstring
     "flake8.args": [
         "--max-line-length=100", // 最大文字数
-        "--ignore=E203,W503,ANN101,ANN204,ANN401,D105,D107,D403,D415,DAR101,DAR201",  // 無視するエラーコード
+        "--ignore=E203,W503,ANN101,ANN204,ANN401,D105,D107,D400,D403,D415,DAR101,DAR201",  // 無視するエラーコード
         "--select=E,W,F,N,D", // E: Error, W: Warning, F: Fatal, N: Naming, D: Docstring
         "--docstring-convention=google", // Googleスタイルのdocstringを使用
     ],

@@ -112,10 +112,14 @@ class LineMessageParser:
         """
         match = self.DATE_PATTERN.match(line)
         if match:
-            year = int(match.group(1))
-            month = int(match.group(2))
-            day = int(match.group(3))
-            return datetime(year, month, day)
+            try:
+                year = int(match.group(1))
+                month = int(match.group(2))
+                day = int(match.group(3))
+                return datetime(year, month, day)
+            except ValueError:
+                # 無効な日付（例：2024/13/32）の場合はNoneを返す
+                return None
         return None
 
     def _parse_message_line(self, line: str, current_date: datetime) -> Message | None:
@@ -128,8 +132,8 @@ class LineMessageParser:
         Returns:
             Message | None: 解析されたメッセージ、無効な行の場合はNone
         """
-        # タブ文字で分割
-        parts = line.split("\t")
+        # タブ文字で分割（最大3分割：時刻、ユーザー名、メッセージ本文）
+        parts = line.split("\t", maxsplit=2)
 
         # 最低でも3つの要素が必要（時刻、ユーザー名、メッセージ）
         if len(parts) < 3:
@@ -151,12 +155,12 @@ class LineMessageParser:
         if not user:
             return None
 
-        # メタメッセージを除外
-        if self._meta_pattern.search(content):
-            return None
-
         # メッセージが空の場合は除外
         if not content:
+            return None
+
+        # メタメッセージを除外
+        if self._meta_pattern.search(content):
             return None
 
         # datetimeオブジェクトを作成
