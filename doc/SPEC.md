@@ -459,14 +459,14 @@ class Message:
 **目的**: MeCabによる単語抽出
 
 **タスク**:
-- [ ] `app/services/morphological.py`の実装
+- [x] `app/services/morphological.py`の実装
   - `MorphologicalAnalyzer`クラス
     - `analyze()`メソッド: テキストを単語に分解
     - `_filter_by_pos()`メソッド: 品詞フィルタリング
     - `_filter_by_length()`メソッド: 文字数フィルタリング
-- [ ] MeCab初期化処理
-- [ ] 品詞マッピングの定義
-- [ ] エラーハンドリング
+- [x] MeCab初期化処理
+- [x] 品詞マッピングの定義
+- [x] エラーハンドリング
 
 **テスト計画**:
 - 単体テスト: `tests/unit/test_morphological.py`
