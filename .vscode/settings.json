@@ -82,6 +82,7 @@
         "pylance",
         "venv",
         "pycache",
+        "endgroup",
     ],
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
