@@ -57,12 +57,14 @@ class MorphologicalAnalyzer:
         "接尾",  # 接尾辞
     }
 
-    def __init__(self, min_length: int = 1, exclude_parts: list[str] | None = None) -> None:
+    def __init__(
+        self, min_length: int = 1, exclude_parts: set[str] | list[str] | None = None
+    ) -> None:
         """形態素解析器の初期化
 
         Args:
             min_length (int): 最小単語長（デフォルト: 1）
-            exclude_parts (list[str] | None): 除外する品詞のリスト（デフォルト: None）
+            exclude_parts (set[str] | list[str] | None): 除外する品詞のリストまたはセット（デフォルト: None）
 
         Raises:
             RuntimeError: MeCabの初期化に失敗した場合

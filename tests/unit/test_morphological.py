@@ -126,6 +126,16 @@ class TestMorphologicalAnalyzer:
         assert "名詞" in pos_list  # 名詞は残る
         # 「静かに」は形容動詞語幹として名詞に分類される
 
+    def test_exclude_parts_with_set(self) -> None:
+        """除外品詞にsetを渡すテスト"""
+        analyzer = MorphologicalAnalyzer(exclude_parts={"動詞", "形容詞"})
+        words = analyzer.analyze("美しい花が咲いている")
+
+        pos_list = [w.part_of_speech for w in words]
+        assert "動詞" not in pos_list
+        assert "形容詞" not in pos_list
+        assert "名詞" in pos_list  # 名詞は残る
+
     def test_filter_non_independent_noun(self) -> None:
         """非自立名詞の除外テスト"""
         analyzer = MorphologicalAnalyzer()
