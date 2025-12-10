@@ -363,10 +363,10 @@ class Message:
 **目的**: コーディング規約の適用
 
 **タスク**:
-- [ ] mypy.iniの作成（既存があれば確認）
-- [ ] .vscode/settings.jsonの確認・更新
-- [ ] .vscode/extensions.jsonの確認・更新
-- [ ] requirements-ci.txtの更新
+- [x] mypy.iniの作成（既存があれば確認）
+- [x] .vscode/settings.jsonの確認・更新
+- [x] .vscode/extensions.jsonの確認・更新
+- [x] requirements-ci.txtの確認・更新
   - pytest
   - pytest-cov
   - pytest-asyncio
@@ -374,7 +374,7 @@ class Message:
   - isort
   - flake8
   - mypy
-- [ ] GitHub Actions用CI設定ファイル作成（オプション）
+- [x] .github/workflows/ci.ymlの確認・更新
 
 **テスト計画**:
 - 各ツールが正常に動作すること

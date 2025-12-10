@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
+        python-version: '3.11'
 
     - name: Cache pip dependencies
       uses: actions/cache@v3
@@ -36,15 +36,13 @@ jobs:
     - name: Run isort check
       run: |
         echo "::group::isort check"
-        isort --profile=black --line-length=100 --check-only --diff \
-          src/**/*.py
+        isort --profile=black --line-length=100 --check-only --diff app/
         echo "::endgroup::"
 
     - name: Run flake8
       run: |
         echo "::group::flake8 check"
-        flake8 \
-          src/**/*.py \
+        flake8 app/ \
           --max-line-length=100 \
           --ignore=E203,W503,ANN101,ANN204,ANN401,D105,D107,D403,D415,DAR101,DAR201 \
           --select=E,W,F,N,D \
@@ -55,7 +53,5 @@ jobs:
     - name: Run mypy
       run: |
         echo "::group::mypy check"
-        mypy \
-          src/**/*.py \
-          --config-file=mypy.ini
+        mypy app/ --config-file=mypy.ini
         echo "::endgroup::"
