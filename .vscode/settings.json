@@ -83,6 +83,14 @@
         "venv",
         "pycache",
         "endgroup",
+        "hoge",
+        "fuga",
+        "piyo",
+        "docstrings",
+        "tqdm",
+        "numpy",
+        "htmlcov",
+        "dmypy",
     ],
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
