@@ -94,7 +94,8 @@ class TestAnalyzeRequest:
 
     def test_json_deserialization(self) -> None:
         """JSONデシリアライズのテスト"""
-        request = AnalyzeRequest(top_n=100, min_word_length=2, exclude_parts="助詞")
+        json_str = '{"top_n": 100, "min_word_length": 2, "exclude_parts": "助詞"}'
+        request = AnalyzeRequest.model_validate_json(json_str)
         assert request.top_n == 100
         assert request.min_word_length == 2
         assert request.exclude_parts == "助詞"

@@ -50,4 +50,4 @@ class AnalyzeRequest(BaseModel):
         """
         if self.exclude_parts is None:
             return []
-        return [part.strip() for part in self.exclude_parts.split(",")]
+        return self.exclude_parts.split(",")
