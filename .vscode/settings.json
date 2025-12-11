@@ -93,6 +93,8 @@
         "numpy",
         "htmlcov",
         "dmypy",
+        "defaultdict",
+        "dataclasses",
     ],
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
