@@ -269,16 +269,12 @@ class TestWordCounter:
 
         # min_word_lengthが負の値
         with pytest.raises(ValueError) as excinfo:
-            counter.count_morphological_words(
-                messages, words_by_message, min_word_length=-1
-            )
+            counter.count_morphological_words(messages, words_by_message, min_word_length=-1)
         assert "min_word_lengthは0以上である必要があります" in str(excinfo.value)
 
         # max_word_lengthが負の値
         with pytest.raises(ValueError) as excinfo:
-            counter.count_morphological_words(
-                messages, words_by_message, max_word_length=-1
-            )
+            counter.count_morphological_words(messages, words_by_message, max_word_length=-1)
         assert "max_word_lengthは0以上である必要があります" in str(excinfo.value)
 
         # min_word_length > max_word_length
@@ -286,9 +282,7 @@ class TestWordCounter:
             counter.count_morphological_words(
                 messages, words_by_message, min_word_length=10, max_word_length=5
             )
-        assert "min_word_lengthはmax_word_length以下である必要があります" in str(
-            excinfo.value
-        )
+        assert "min_word_lengthはmax_word_length以下である必要があります" in str(excinfo.value)
         assert "min=10" in str(excinfo.value)
         assert "max=5" in str(excinfo.value)
 
@@ -477,9 +471,7 @@ class TestWordCounter:
 
         # min_message_length > max_message_length
         with pytest.raises(ValueError) as excinfo:
-            counter.count_full_messages(
-                messages, min_message_length=10, max_message_length=5
-            )
+            counter.count_full_messages(messages, min_message_length=10, max_message_length=5)
         assert "min_message_lengthはmax_message_length以下である必要があります" in str(
             excinfo.value
         )

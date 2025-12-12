@@ -96,6 +96,7 @@
         "defaultdict",
         "dataclasses",
         "excinfo",
+        "ryoukai",
     ],
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
