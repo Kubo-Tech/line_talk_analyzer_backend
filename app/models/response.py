@@ -36,7 +36,9 @@ class TopWord(BaseModel):
     word: str = Field(description="単語")
     count: int = Field(ge=1, description="出現回数")
     part_of_speech: str = Field(description="品詞")
-    appearances: list[WordAppearance] = Field(default_factory=list, description="出現情報のリスト")
+    appearances: list[WordAppearance] = Field(
+        default_factory=list, description="出現情報のリスト"
+    )
 
 
 class MorphologicalAnalysis(BaseModel):
@@ -46,7 +48,9 @@ class MorphologicalAnalysis(BaseModel):
         top_words (list[TopWord]): 上位単語のリスト
     """
 
-    top_words: list[TopWord] = Field(default_factory=list, description="上位単語のリスト")
+    top_words: list[TopWord] = Field(
+        default_factory=list, description="上位単語のリスト"
+    )
 
 
 class MessageAppearance(BaseModel):
@@ -124,7 +128,9 @@ class WordAnalysisResult(BaseModel):
     total_messages: int = Field(ge=0, description="総メッセージ数")
     total_users: int = Field(ge=0, description="総ユーザー数")
     morphological_analysis: MorphologicalAnalysis = Field(description="形態素解析結果")
-    full_message_analysis: MessageAnalysisResult = Field(description="メッセージ全文解析結果")
+    full_message_analysis: MessageAnalysisResult = Field(
+        description="メッセージ全文解析結果"
+    )
 
 
 class AnalysisResult(BaseModel):

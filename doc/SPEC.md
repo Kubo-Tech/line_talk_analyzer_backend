@@ -546,20 +546,20 @@ class Message:
 **目的**: REST APIの提供
 
 **タスク**:
-- [ ] `app/main.py`の実装
+- [x] `app/main.py`の実装
   - FastAPIアプリケーションの初期化
   - CORSミドルウェアの設定
   - ルーターの登録
-- [ ] `app/core/config.py`の実装
+- [x] `app/core/config.py`の実装
   - 環境変数読み込み
   - 設定クラス定義
-- [ ] `app/core/cors.py`の実装
+- [x] `app/core/cors.py`の実装
   - CORS設定
-- [ ] `app/api/v1/router.py`の実装
+- [x] `app/api/v1/router.py`の実装
   - APIルーターの統合
-- [ ] `app/api/v1/endpoints/health.py`の実装
+- [x] `app/api/v1/endpoints/health.py`の実装
   - ヘルスチェックエンドポイント
-- [ ] `app/api/v1/endpoints/analyze.py`の実装
+- [x] `app/api/v1/endpoints/analyze.py`の実装
   - 解析エンドポイント
   - ファイルアップロード処理
   - バリデーション
@@ -567,16 +567,18 @@ class Message:
 
 **テスト計画**:
 - 統合テスト: `tests/integration/test_api.py`
-  - ヘルスチェックエンドポイント
-  - 解析エンドポイントの正常系
-  - 解析エンドポイントの異常系
-    - ファイルなし
-    - 不正なファイル形式
-    - ファイルサイズ超過
-  - CORS設定の確認
-  - 各種パラメータの動作確認
+  - [x] ヘルスチェックエンドポイント
+  - [x] 解析エンドポイントの正常系
+  - [x] 解析エンドポイントの異常系
+    - [x] ファイルなし
+    - [x] 不正なファイル形式
+    - [x] ファイルサイズ超過
+  - [x] CORS設定の確認
+  - [x] 各種パラメータの動作確認
 
 **依存**: PR#7（統合解析サービス）
+
+**完了**: ✅
 
 ---
 

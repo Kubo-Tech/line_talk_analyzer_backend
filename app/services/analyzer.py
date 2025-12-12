@@ -103,7 +103,9 @@ class TalkAnalyzer:
             return self._create_empty_result()
 
         # 2. 形態素解析で単語抽出
-        words_by_message = [self.morphological_analyzer.analyze(msg.content) for msg in messages]
+        words_by_message = [
+            self.morphological_analyzer.analyze(msg.content) for msg in messages
+        ]
 
         # 3. 単語カウンターで集計
         word_counts = self.word_counter.count_morphological_words(
@@ -140,15 +142,21 @@ class TalkAnalyzer:
 
         # 開始日時でフィルタリング
         if start_date is not None:
-            filtered_messages = [msg for msg in filtered_messages if msg.datetime >= start_date]
+            filtered_messages = [
+                msg for msg in filtered_messages if msg.datetime >= start_date
+            ]
 
         # 終了日時でフィルタリング
         if end_date is not None:
-            filtered_messages = [msg for msg in filtered_messages if msg.datetime <= end_date]
+            filtered_messages = [
+                msg for msg in filtered_messages if msg.datetime <= end_date
+            ]
 
         return filtered_messages
 
-    def _get_top_words(self, word_counts: list[WordCount], top_n: int) -> list[WordCount]:
+    def _get_top_words(
+        self, word_counts: list[WordCount], top_n: int
+    ) -> list[WordCount]:
         """上位N件の単語を取得する
 
         Args:
@@ -175,7 +183,9 @@ class TalkAnalyzer:
             list[MessageCount]: 上位N件のメッセージカウントのリスト（合計カウント降順）
         """
         # 合計カウント数でソート（降順）し、上位N件を取得
-        sorted_messages = sorted(message_counts, key=lambda x: x.total_count, reverse=True)
+        sorted_messages = sorted(
+            message_counts, key=lambda x: x.total_count, reverse=True
+        )
         return sorted_messages[:top_n]
 
     def _format_response(
@@ -223,7 +233,9 @@ class TalkAnalyzer:
             ),
         )
 
-    def _format_morphological_analysis(self, top_words: list[WordCount]) -> MorphologicalAnalysis:
+    def _format_morphological_analysis(
+        self, top_words: list[WordCount]
+    ) -> MorphologicalAnalysis:
         """形態素解析結果を整形する
 
         Args:
@@ -252,7 +264,9 @@ class TalkAnalyzer:
             )
         return MorphologicalAnalysis(top_words=top_word_models)
 
-    def _format_message_analysis(self, top_messages: list[MessageCount]) -> MessageAnalysisResult:
+    def _format_message_analysis(
+        self, top_messages: list[MessageCount]
+    ) -> MessageAnalysisResult:
         """メッセージ全文解析結果を整形する
 
         Args:

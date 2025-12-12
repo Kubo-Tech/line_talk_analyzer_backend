@@ -97,6 +97,7 @@
         "dataclasses",
         "excinfo",
         "ryoukai",
+        "httpx",
     ],
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
