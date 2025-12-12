@@ -87,7 +87,7 @@ class TestWordCounter:
         ]
 
     @pytest.fixture
-    def sample_words_by_message(self, sample_messages: list[Message]) -> list[list[Word]]:
+    def sample_words_by_message(self) -> list[list[Word]]:
         """テスト用の形態素解析結果"""
         return [
             [
@@ -210,6 +210,88 @@ class TestWordCounter:
         assert len(word_counts) == 1
         assert word_counts[0].word == "天気"
 
+    def test_count_morphological_words_length_mismatch(self) -> None:
+        """messagesとwords_by_messageの長さが一致しない場合のテスト"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="今日は良い天気です",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 15),
+                user="ユーザーB",
+                content="今日も良い天気ですね",
+            ),
+        ]
+
+        # messagesより少ないwords_by_message
+        words_by_message_short = [
+            [Word("今日", "今日", "名詞", "副詞可能", "*", "*")],
+        ]
+
+        # messagesより多いwords_by_message
+        words_by_message_long = [
+            [Word("今日", "今日", "名詞", "副詞可能", "*", "*")],
+            [Word("今日", "今日", "名詞", "副詞可能", "*", "*")],
+            [Word("明日", "明日", "名詞", "副詞可能", "*", "*")],
+        ]
+
+        counter = WordCounter()
+
+        # 長さが一致しない場合はValueErrorが発生
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_morphological_words(messages, words_by_message_short)
+        assert "messagesとwords_by_messageの長さが一致しません" in str(excinfo.value)
+        assert "messages=2" in str(excinfo.value)
+        assert "words_by_message=1" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_morphological_words(messages, words_by_message_long)
+        assert "messagesとwords_by_messageの長さが一致しません" in str(excinfo.value)
+        assert "messages=2" in str(excinfo.value)
+        assert "words_by_message=3" in str(excinfo.value)
+
+    def test_count_morphological_words_invalid_parameters(self) -> None:
+        """count_morphological_wordsのパラメータ検証テスト"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="今日は良い天気です",
+            ),
+        ]
+        words_by_message = [
+            [Word("今日", "今日", "名詞", "副詞可能", "*", "*")],
+        ]
+
+        counter = WordCounter()
+
+        # min_word_lengthが負の値
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_morphological_words(
+                messages, words_by_message, min_word_length=-1
+            )
+        assert "min_word_lengthは0以上である必要があります" in str(excinfo.value)
+
+        # max_word_lengthが負の値
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_morphological_words(
+                messages, words_by_message, max_word_length=-1
+            )
+        assert "max_word_lengthは0以上である必要があります" in str(excinfo.value)
+
+        # min_word_length > max_word_length
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_morphological_words(
+                messages, words_by_message, min_word_length=10, max_word_length=5
+            )
+        assert "min_word_lengthはmax_word_length以下である必要があります" in str(
+            excinfo.value
+        )
+        assert "min=10" in str(excinfo.value)
+        assert "max=5" in str(excinfo.value)
+
     def test_count_full_messages_exact_match(self) -> None:
         """メッセージ全文の完全一致カウントテスト"""
         messages = [
@@ -302,7 +384,8 @@ class TestWordCounter:
         ]
 
         counter = WordCounter()
-        message_counts = counter.count_full_messages(messages)
+        # min_message_length=1に設定して1文字も検索対象にする
+        message_counts = counter.count_full_messages(messages, min_message_length=1)
 
         message_count_dict = {mc.message: mc for mc in message_counts}
 
@@ -369,6 +452,39 @@ class TestWordCounter:
         assert "これは長い" in message_count_dict
         assert message_count_dict["これは長い"].exact_count == 1
         assert message_count_dict["これは長い"].partial_count == 0  # 検索対象外
+
+    def test_count_full_messages_invalid_parameters(self) -> None:
+        """count_full_messagesのパラメータ検証テスト"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="テスト",
+            ),
+        ]
+
+        counter = WordCounter()
+
+        # min_message_lengthが負の値
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_full_messages(messages, min_message_length=-1)
+        assert "min_message_lengthは0以上である必要があります" in str(excinfo.value)
+
+        # max_message_lengthが負の値
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_full_messages(messages, max_message_length=-1)
+        assert "max_message_lengthは0以上である必要があります" in str(excinfo.value)
+
+        # min_message_length > max_message_length
+        with pytest.raises(ValueError) as excinfo:
+            counter.count_full_messages(
+                messages, min_message_length=10, max_message_length=5
+            )
+        assert "min_message_lengthはmax_message_length以下である必要があります" in str(
+            excinfo.value
+        )
+        assert "min=10" in str(excinfo.value)
+        assert "max=5" in str(excinfo.value)
 
     def test_find_partial_matches(self) -> None:
         """部分一致検索のテスト"""

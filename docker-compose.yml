@@ -7,7 +7,7 @@ services:
       # プロジェクト全体をマウント（開発時のホットリロード用）
       - .:/app
     ports:
-      - "8000:8000"  # FastAPI用
+      - "8001:8000"  # FastAPI用（ホスト:8001 -> コンテナ:8000）
     environment:
       - PYTHONPATH=/app
       - ALLOWED_ORIGINS=http://localhost:3000

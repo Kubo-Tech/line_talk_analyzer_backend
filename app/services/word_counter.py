@@ -74,7 +74,35 @@ class WordCounter:
 
         Returns:
             list[WordCount]: 単語カウント結果のリスト
+
+        Raises:
+            ValueError: messagesとwords_by_messageの長さが一致しない場合
+            ValueError: min_word_lengthが負の値の場合
+            ValueError: max_word_lengthが負の値の場合
+            ValueError: min_word_length > max_word_lengthの場合
         """
+        # min_word_lengthとmax_word_lengthの検証
+        if min_word_length < 0:
+            raise ValueError(
+                f"min_word_lengthは0以上である必要があります: {min_word_length}"
+            )
+        if max_word_length is not None and max_word_length < 0:
+            raise ValueError(
+                f"max_word_lengthは0以上である必要があります: {max_word_length}"
+            )
+        if max_word_length is not None and min_word_length > max_word_length:
+            raise ValueError(
+                f"min_word_lengthはmax_word_length以下である必要があります: "
+                f"min={min_word_length}, max={max_word_length}"
+            )
+
+        # messagesとwords_by_messageの長さが一致することを検証
+        if len(messages) != len(words_by_message):
+            raise ValueError(
+                f"messagesとwords_by_messageの長さが一致しません: "
+                f"messages={len(messages)}, words_by_message={len(words_by_message)}"
+            )
+
         # 基本形をキーとして単語をグループ化
         word_dict: dict[str, dict[str, Any]] = defaultdict(
             lambda: {
@@ -125,19 +153,39 @@ class WordCounter:
     def count_full_messages(
         self,
         messages: list[Message],
-        min_message_length: int = 1,
+        min_message_length: int = 2,
         max_message_length: int | None = None,
     ) -> list[MessageCount]:
         """メッセージ全文の集計
 
         Args:
             messages (list[Message]): メッセージのリスト
-            min_message_length (int): 部分一致検索対象の最小文字数（デフォルト: 1）
+            min_message_length (int): 部分一致検索対象の最小文字数（デフォルト: 2）
             max_message_length (int | None): 部分一致検索対象の最大文字数（デフォルト: None=無制限）
 
         Returns:
             list[MessageCount]: メッセージカウント結果のリスト
+
+        Raises:
+            ValueError: min_message_lengthが負の値の場合
+            ValueError: max_message_lengthが負の値の場合
+            ValueError: min_message_length > max_message_lengthの場合
         """
+        # min_message_lengthとmax_message_lengthの検証
+        if min_message_length < 0:
+            raise ValueError(
+                f"min_message_lengthは0以上である必要があります: {min_message_length}"
+            )
+        if max_message_length is not None and max_message_length < 0:
+            raise ValueError(
+                f"max_message_lengthは0以上である必要があります: {max_message_length}"
+            )
+        if max_message_length is not None and min_message_length > max_message_length:
+            raise ValueError(
+                f"min_message_lengthはmax_message_length以下である必要があります: "
+                f"min={min_message_length}, max={max_message_length}"
+            )
+
         # メッセージ本文をキーとして集計
         message_dict: dict[str, dict[str, Any]] = defaultdict(
             lambda: {
@@ -182,9 +230,7 @@ class WordCounter:
 
         return message_counts
 
-    def _find_partial_matches(
-        self, target: str, messages: list[Message]
-    ) -> list[Message]:
+    def _find_partial_matches(self, target: str, messages: list[Message]) -> list[Message]:
         """部分一致検索
 
         対象メッセージを部分文字列として含む他のメッセージを検索する
@@ -207,7 +253,7 @@ class WordCounter:
             if message.content == target:
                 continue
 
-            # 部分一致の回数をカウント（重複を考慮）
+            # 部分一致の回数をカウント（非重複方式）
             count = self._count_occurrences(target, message.content)
             # 出現回数分だけリストに追加
             for _ in range(count):
