@@ -1,4 +1,4 @@
-"""API v1 エンドポイント"""
+"""APIパッケージ"""
 
 from app.api.v1.endpoints import analyze, health
 

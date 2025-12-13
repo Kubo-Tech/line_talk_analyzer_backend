@@ -4,11 +4,17 @@ FastAPI TestClientを使用してエンドポイントをテストする
 """
 
 from io import BytesIO
+from unittest import mock
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.analyzer import TalkAnalyzer
+
+# TestClientはlifespanイベントをサポートしているが、明示的にwith文を使用する必要がある
+# ただし、グローバルclientとしてwithを使えないため、app.state.analyzerを手動で初期化
+app.state.analyzer = TalkAnalyzer()
 
 client = TestClient(app)
 
@@ -81,7 +87,7 @@ class TestAnalyzeEndpoint:
         response = client.post(
             "/api/v1/analyze",
             files={"file": ("test.txt", sample_talk_file, "text/plain")},
-            data={"top_n": 10, "min_word_length": 2, "min_message_length": 3},
+            data={"top_n": "10", "min_word_length": "2", "min_message_length": "3"},
         )
 
         assert response.status_code == 200
@@ -164,6 +170,78 @@ class TestAnalyzeEndpoint:
 
         assert response.status_code == 413
         assert "ファイルサイズが大きすぎます" in response.json()["detail"]
+
+    def test_analyze_file_at_size_limit(self) -> None:
+        """境界値: ちょうど50MBのファイル"""
+        # ちょうど50MBのダミーファイル
+        content_50mb = b"a" * (50 * 1024 * 1024)
+        file_50mb = BytesIO(content_50mb)
+
+        response = client.post(
+            "/api/v1/analyze", files={"file": ("test.txt", file_50mb, "text/plain")}
+        )
+
+        # 50MBちょうどなので413エラーにならず、正常に処理される
+        # （内容が不正でもサイズチェックはパスする）
+        assert response.status_code in [200, 400]
+        # 413（サイズ超過）ではないことを確認
+        assert response.status_code != 413
+
+    def test_analyze_chunked_reading(self) -> None:
+        """正常系: チャンク読み込みが正しく動作すること"""
+        # 5MBのLINEトーク履歴風ファイル
+        sample_talk = """[LINE] テストグループのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12\tユーザー1\tこんにちは
+22:13\tユーザー2\tよろしく
+"""
+        # 5MBになるまで繰り返し
+        large_talk = sample_talk * (5 * 1024 * 1024 // len(sample_talk.encode("utf-8")))
+        large_file = BytesIO(large_talk.encode("utf-8"))
+
+        response = client.post(
+            "/api/v1/analyze", files={"file": ("test.txt", large_file, "text/plain")}
+        )
+
+        # チャンク読み込みでも正常に解析できることを確認
+        assert response.status_code == 200
+
+    def test_analyze_server_error(self, sample_talk_file: BytesIO) -> None:
+        """異常系: サーバー内部エラー（予期しない例外）"""
+        # TalkAnalyzer.analyzeをモックして予期しない例外を発生させる
+        with mock.patch.object(
+            TalkAnalyzer, "analyze", side_effect=RuntimeError("予期しないエラー")
+        ):
+            response = client.post(
+                "/api/v1/analyze",
+                files={"file": ("test.txt", sample_talk_file, "text/plain")},
+            )
+
+            assert response.status_code == 500
+            # 一般的なエラーメッセージが返されることを確認（詳細は含まれない）
+            assert "サーバー内部エラーが発生しました" in response.json()["detail"]
+            # セキュリティのため、内部エラーの詳細は露出されない
+            assert "予期しないエラー" not in response.json()["detail"]
+            assert "RuntimeError" not in response.json()["detail"]
+
+    def test_analyze_value_error(self, sample_talk_file: BytesIO) -> None:
+        """異常系: ValueError（解析エラー）"""
+        # TalkAnalyzer.analyzeをモックしてValueErrorを発生させる
+        with mock.patch.object(
+            TalkAnalyzer, "analyze", side_effect=ValueError("不正なトーク履歴形式")
+        ):
+            response = client.post(
+                "/api/v1/analyze",
+                files={"file": ("test.txt", sample_talk_file, "text/plain")},
+            )
+
+            assert response.status_code == 400
+            # 一般的なエラーメッセージが返されることを確認（詳細は含まれない）
+            assert "トーク履歴の形式が正しくありません" in response.json()["detail"]
+            # セキュリティのため、内部エラーの詳細は露出されない
+            assert "不正なトーク履歴形式" not in response.json()["detail"]
 
 
 class TestCORS:

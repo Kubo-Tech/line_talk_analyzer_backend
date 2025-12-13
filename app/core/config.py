@@ -4,6 +4,7 @@
 """
 
 import os
+import warnings
 from functools import lru_cache
 
 
@@ -25,13 +26,41 @@ class Settings:
         )
 
         # ファイルアップロード設定
-        self.MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "50"))
+        self.MAX_FILE_SIZE_MB: int = self._get_int_env("MAX_FILE_SIZE_MB", 50)
         self.MAX_FILE_SIZE_BYTES: int = self.MAX_FILE_SIZE_MB * 1024 * 1024
 
         # 解析設定
-        self.DEFAULT_TOP_N: int = int(os.getenv("DEFAULT_TOP_N", "50"))
-        self.MIN_WORD_LENGTH: int = int(os.getenv("MIN_WORD_LENGTH", "1"))
-        self.MIN_MESSAGE_LENGTH: int = int(os.getenv("MIN_MESSAGE_LENGTH", "2"))
+        self.DEFAULT_TOP_N: int = self._get_int_env("DEFAULT_TOP_N", 50)
+        self.MIN_WORD_LENGTH: int = self._get_int_env("MIN_WORD_LENGTH", 1)
+        self.MIN_MESSAGE_LENGTH: int = self._get_int_env("MIN_MESSAGE_LENGTH", 2)
+
+    def _get_int_env(self, key: str, default: int) -> int:
+        """環境変数から整数値を安全に取得する
+
+        環境変数の値が整数に変換できない場合は、デフォルト値を使用し、
+        警告メッセージを表示する
+
+        Args:
+            key (str): 環境変数のキー
+            default (int): デフォルト値
+
+        Returns:
+            int: 環境変数の値またはデフォルト値
+        """
+        value_str = os.getenv(key)
+        if value_str is None:
+            return default
+
+        try:
+            return int(value_str)
+        except ValueError:
+            warnings.warn(
+                f"環境変数 {key} の値 '{value_str}' は整数に変換できません。"
+                f"デフォルト値 {default} を使用します。",
+                UserWarning,
+                stacklevel=2,
+            )
+            return default
 
     def _parse_origins(self, origins_str: str) -> list[str]:
         """カンマ区切りのオリジン文字列をリストに変換する
