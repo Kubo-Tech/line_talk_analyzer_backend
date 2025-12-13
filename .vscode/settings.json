@@ -98,6 +98,7 @@
         "excinfo",
         "ryoukai",
         "httpx",
+        "stopwords",
     ],
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
