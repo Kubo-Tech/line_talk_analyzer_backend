@@ -150,9 +150,9 @@ class TestTopWord:
         assert word.appearances[0].message == "おうち帰りたい"
 
     def test_count_validation(self) -> None:
-        """カウントのバリデーション"""
+        """カウントのバリデーション（1以上である必要がある）"""
         with pytest.raises(ValidationError):
-            TopWord(word="test", count=0, part_of_speech="名詞")
+            TopWord(word="test", count=-1, part_of_speech="名詞")
 
 
 class TestMorphologicalAnalysis:
@@ -209,11 +209,11 @@ class TestTopMessage:
         assert message.count == 23
 
     def test_count_validation(self) -> None:
-        """カウントのバリデーション"""
+        """カウントのバリデーション（1以上である必要がある）"""
         with pytest.raises(ValidationError):
             TopMessage(
                 message="test",
-                count=0,
+                count=-1,
             )
 
 

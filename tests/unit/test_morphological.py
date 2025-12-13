@@ -94,9 +94,6 @@ class TestMorphologicalAnalyzer:
         surfaces = [w.surface for w in words]
         assert "集合" in surfaces  # 名詞
         assert "10" not in surfaces  # 数詞は除外
-        assert "集合" in surfaces
-        # 数詞「10」は除外される
-        assert "10" not in surfaces
 
     def test_min_length_filtering(self) -> None:
         """最小文字数フィルタリングのテスト"""
@@ -199,7 +196,6 @@ class TestMorphologicalAnalyzer:
         surfaces = [w.surface for w in words]
         assert "天気" in surfaces
         assert "良い" in surfaces
-        assert "公園" in surfaces
         assert "公園" in surfaces
 
     def test_mecab_initialization_error(self) -> None:
