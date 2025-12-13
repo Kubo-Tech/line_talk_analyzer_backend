@@ -83,9 +83,13 @@ class WordCounter:
         """
         # min_word_lengthとmax_word_lengthの検証
         if min_word_length < 0:
-            raise ValueError(f"min_word_lengthは0以上である必要があります: {min_word_length}")
+            raise ValueError(
+                f"min_word_lengthは0以上である必要があります: {min_word_length}"
+            )
         if max_word_length is not None and max_word_length < 0:
-            raise ValueError(f"max_word_lengthは0以上である必要があります: {max_word_length}")
+            raise ValueError(
+                f"max_word_lengthは0以上である必要があります: {max_word_length}"
+            )
         if max_word_length is not None and min_word_length > max_word_length:
             raise ValueError(
                 f"min_word_lengthはmax_word_length以下である必要があります: "
@@ -169,9 +173,13 @@ class WordCounter:
         """
         # min_message_lengthとmax_message_lengthの検証
         if min_message_length < 0:
-            raise ValueError(f"min_message_lengthは0以上である必要があります: {min_message_length}")
+            raise ValueError(
+                f"min_message_lengthは0以上である必要があります: {min_message_length}"
+            )
         if max_message_length is not None and max_message_length < 0:
-            raise ValueError(f"max_message_lengthは0以上である必要があります: {max_message_length}")
+            raise ValueError(
+                f"max_message_lengthは0以上である必要があります: {max_message_length}"
+            )
         if max_message_length is not None and min_message_length > max_message_length:
             raise ValueError(
                 f"min_message_lengthはmax_message_length以下である必要があります: "
@@ -222,7 +230,9 @@ class WordCounter:
 
         return message_counts
 
-    def _find_partial_matches(self, target: str, messages: list[Message]) -> list[Message]:
+    def _find_partial_matches(
+        self, target: str, messages: list[Message]
+    ) -> list[Message]:
         """部分一致検索
 
         対象メッセージを部分文字列として含む他のメッセージを検索する

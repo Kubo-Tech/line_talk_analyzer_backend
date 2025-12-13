@@ -19,7 +19,9 @@ class AnalyzeRequest(BaseModel):
 
     top_n: int = Field(default=50, ge=1, le=1000, description="取得する上位単語数")
     min_word_length: int = Field(default=1, ge=1, le=10, description="最小単語長")
-    exclude_parts: Optional[str] = Field(default=None, description="除外品詞（カンマ区切り）")
+    exclude_parts: Optional[str] = Field(
+        default=None, description="除外品詞（カンマ区切り）"
+    )
 
     @field_validator("exclude_parts")
     @classmethod
