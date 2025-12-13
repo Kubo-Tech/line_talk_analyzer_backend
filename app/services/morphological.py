@@ -3,7 +3,9 @@
 MeCabを使用してテキストを単語に分解し、品詞情報を付与する
 """
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import MeCab
 
@@ -38,9 +40,7 @@ class MorphologicalAnalyzer:
     # 抽出対象の品詞（デフォルト）
     DEFAULT_TARGET_POS = {
         "名詞",  # 名詞全般
-        "動詞",  # 動詞全般
         "形容詞",  # 形容詞全般
-        "副詞",  # 副詞
         "感動詞",  # 感動詞
     }
 
@@ -51,9 +51,9 @@ class MorphologicalAnalyzer:
         "数",  # 数詞
     }
 
-    # 除外する動詞・形容詞の細分類
-    EXCLUDED_VERB_ADJ_DETAILS = {
-        "非自立",  # 非自立動詞・形容詞
+    # 除外する形容詞の細分類
+    EXCLUDED_ADJ_DETAILS = {
+        "非自立",  # 非自立形容詞
         "接尾",  # 接尾辞
     }
 
@@ -76,6 +76,29 @@ class MorphologicalAnalyzer:
 
         self.min_length = min_length
         self.exclude_parts = set(exclude_parts) if exclude_parts else set()
+
+        # ストップワードの読み込み
+        self.stop_words = self._load_stop_words()
+
+    def _load_stop_words(self) -> set[str]:
+        """ストップワードをJSONファイルから読み込む
+
+        Returns:
+            set[str]: ストップワードのセット
+        """
+        stopwords_path = Path(__file__).parent.parent / "data" / "stopwords.json"
+
+        try:
+            with open(stopwords_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return set(data.get("stop_words", []))
+        except FileNotFoundError:
+            # ファイルが見つからない場合は空のセットを返す
+            return set()
+        except json.JSONDecodeError as e:
+            # JSON解析エラーの場合は警告して空のセットを返す
+            print(f"警告: stopwords.jsonの読み込みに失敗しました: {e}")
+            return set()
 
     def analyze(self, text: str) -> list[Word]:
         """テキストを形態素解析
@@ -146,6 +169,10 @@ class MorphologicalAnalyzer:
         if not self._filter_by_pos(word):
             return False
 
+        # ストップワードチェック（基本形で判定）
+        if word.base_form in self.stop_words:
+            return False
+
         return True
 
     def _filter_by_length(self, word: Word) -> bool:
@@ -183,8 +210,8 @@ class MorphologicalAnalyzer:
         if pos == "名詞" and pos_detail1 in self.EXCLUDED_NOUN_DETAILS:
             return False
 
-        # 動詞・形容詞の細分類チェック
-        if pos in {"動詞", "形容詞"} and pos_detail1 in self.EXCLUDED_VERB_ADJ_DETAILS:
+        # 形容詞の細分類チェック
+        if pos == "形容詞" and pos_detail1 in self.EXCLUDED_ADJ_DETAILS:
             return False
 
         return True

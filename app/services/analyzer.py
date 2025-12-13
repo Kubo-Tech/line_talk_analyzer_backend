@@ -5,7 +5,7 @@ LINEトーク履歴の解析処理を統合し、API向けのレスポンスを�
 
 from datetime import datetime
 from io import StringIO
-from typing import TextIO
+from typing import Any, TextIO
 
 from app.models.response import (
     AnalysisPeriod,
@@ -43,7 +43,7 @@ class TalkAnalyzer:
         self,
         file: TextIO | str,
         top_n: int = 50,
-        min_word_length: int = 1,
+        min_word_length: int = 2,
         max_word_length: int | None = None,
         min_message_length: int = 2,
         max_message_length: int | None = None,
@@ -58,12 +58,13 @@ class TalkAnalyzer:
         Args:
             file (TextIO | str): LINEトーク履歴ファイルまたは文字列
             top_n (int): 取得する上位単語数（デフォルト: 50）
-            min_word_length (int): 最小単語長（デフォルト: 1）
+            min_word_length (int): 最小単語長（デフォルト: 2）
             max_word_length (int | None): 最大単語長（デフォルト: None）
             min_message_length (int): 最小メッセージ長（デフォルト: 2）
             max_message_length (int | None): 最大メッセージ長（デフォルト: None）
             start_date (datetime | None): 解析開始日時（デフォルト: None）
             end_date (datetime | None): 解析終了日時（デフォルト: None）
+
 
         Returns:
             AnalysisResult: 解析結果
@@ -103,9 +104,7 @@ class TalkAnalyzer:
             return self._create_empty_result()
 
         # 2. 形態素解析で単語抽出
-        words_by_message = [
-            self.morphological_analyzer.analyze(msg.content) for msg in messages
-        ]
+        words_by_message = [self.morphological_analyzer.analyze(msg.content) for msg in messages]
 
         # 3. 単語カウンターで集計
         word_counts = self.word_counter.count_morphological_words(
@@ -119,8 +118,15 @@ class TalkAnalyzer:
         top_words = self._get_top_words(word_counts, top_n)
         top_messages = self._get_top_messages(message_counts, top_n)
 
+        # 4.5. ユーザー別集計
+        # word_countsとmessage_countsのuser_countsからユーザー別ランキングを生成
+        user_word_analysis = self._format_user_word_analysis(word_counts, top_n)
+        user_message_analysis = self._format_user_message_analysis(message_counts, top_n)
+
         # 5. APIレスポンス形式に整形
-        return self._format_response(messages, top_words, top_messages)
+        return self._format_response(
+            messages, top_words, top_messages, user_word_analysis, user_message_analysis
+        )
 
     def _filter_by_period(
         self,
@@ -142,21 +148,15 @@ class TalkAnalyzer:
 
         # 開始日時でフィルタリング
         if start_date is not None:
-            filtered_messages = [
-                msg for msg in filtered_messages if msg.datetime >= start_date
-            ]
+            filtered_messages = [msg for msg in filtered_messages if msg.datetime >= start_date]
 
         # 終了日時でフィルタリング
         if end_date is not None:
-            filtered_messages = [
-                msg for msg in filtered_messages if msg.datetime <= end_date
-            ]
+            filtered_messages = [msg for msg in filtered_messages if msg.datetime <= end_date]
 
         return filtered_messages
 
-    def _get_top_words(
-        self, word_counts: list[WordCount], top_n: int
-    ) -> list[WordCount]:
+    def _get_top_words(self, word_counts: list[WordCount], top_n: int) -> list[WordCount]:
         """上位N件の単語を取得する
 
         Args:
@@ -180,12 +180,10 @@ class TalkAnalyzer:
             top_n (int): 取得する上位件数
 
         Returns:
-            list[MessageCount]: 上位N件のメッセージカウントのリスト（合計カウント降順）
+            list[MessageCount]: 上位N件のメッセージカウントのリスト（カウント降順）
         """
-        # 合計カウント数でソート（降順）し、上位N件を取得
-        sorted_messages = sorted(
-            message_counts, key=lambda x: x.total_count, reverse=True
-        )
+        # カウント数でソート（降順）し、上位N件を取得
+        sorted_messages = sorted(message_counts, key=lambda x: x.count, reverse=True)
         return sorted_messages[:top_n]
 
     def _format_response(
@@ -193,6 +191,8 @@ class TalkAnalyzer:
         messages: list[Message],
         top_words: list[WordCount],
         top_messages: list[MessageCount],
+        user_word_analysis: list[Any] | None = None,
+        user_message_analysis: list[Any] | None = None,
     ) -> AnalysisResult:
         """APIレスポンス形式に整形する
 
@@ -222,6 +222,16 @@ class TalkAnalyzer:
         full_message_analysis = self._format_message_analysis(top_messages)
 
         # レスポンスを生成
+        # ユーザー別解析結果の作成
+        from app.models.response import UserAnalysis
+
+        user_analysis = None
+        if user_word_analysis is not None or user_message_analysis is not None:
+            user_analysis = UserAnalysis(
+                word_analysis=user_word_analysis or [],
+                message_analysis=user_message_analysis or [],
+            )
+
         return AnalysisResult(
             status="success",
             data=WordAnalysisResult(
@@ -230,12 +240,11 @@ class TalkAnalyzer:
                 total_users=unique_users,
                 morphological_analysis=morphological_analysis,
                 full_message_analysis=full_message_analysis,
+                user_analysis=user_analysis,
             ),
         )
 
-    def _format_morphological_analysis(
-        self, top_words: list[WordCount]
-    ) -> MorphologicalAnalysis:
+    def _format_morphological_analysis(self, top_words: list[WordCount]) -> MorphologicalAnalysis:
         """形態素解析結果を整形する
 
         Args:
@@ -264,9 +273,7 @@ class TalkAnalyzer:
             )
         return MorphologicalAnalysis(top_words=top_word_models)
 
-    def _format_message_analysis(
-        self, top_messages: list[MessageCount]
-    ) -> MessageAnalysisResult:
+    def _format_message_analysis(self, top_messages: list[MessageCount]) -> MessageAnalysisResult:
         """メッセージ全文解析結果を整形する
 
         Args:
@@ -277,36 +284,20 @@ class TalkAnalyzer:
         """
         top_message_models = []
         for message_count in top_messages:
-            appearances = []
-
-            # 完全一致の出現情報を追加
-            for msg in message_count.exact_appearances:
-                appearances.append(
-                    MessageAppearance(
-                        date=msg.datetime,
-                        user=msg.user,
-                        message=msg.content,
-                        match_type="exact",
-                    )
+            appearances = [
+                MessageAppearance(
+                    date=msg.datetime,
+                    user=msg.user,
+                    message=msg.content,
+                    match_type="exact",
                 )
-
-            # 部分一致の出現情報を追加
-            for msg in message_count.partial_appearances:
-                appearances.append(
-                    MessageAppearance(
-                        date=msg.datetime,
-                        user=msg.user,
-                        message=msg.content,
-                        match_type="partial",
-                    )
-                )
+                for msg in message_count.appearances
+            ]
 
             top_message_models.append(
                 TopMessage(
                     message=message_count.message,
-                    exact_count=message_count.exact_count,
-                    partial_count=message_count.partial_count,
-                    total_count=message_count.total_count,
+                    count=message_count.count,
                     appearances=appearances,
                 )
             )
@@ -338,3 +329,113 @@ class TalkAnalyzer:
                 full_message_analysis=MessageAnalysisResult(top_messages=[]),
             ),
         )
+
+    def _format_user_word_analysis(self, word_counts: list[WordCount], top_n: int) -> list[Any]:
+        """ユーザー別の単語解析結果を整形する
+
+        Args:
+            word_counts (list[WordCount]): 単語カウントのリスト（user_countsを含む）
+            top_n (int): 各ユーザーの上位N件
+
+        Returns:
+            list[Any]: ユーザー別単語解析結果
+        """
+        from app.models.response import UserWordAnalysis
+
+        # ユーザーごとに単語カウントを集約
+        user_word_dict: dict[str, list[tuple[WordCount, int]]] = {}
+        for wc in word_counts:
+            for user, count in wc.user_counts.items():
+                if user not in user_word_dict:
+                    user_word_dict[user] = []
+                user_word_dict[user].append((wc, count))
+
+        # 各ユーザーの上位N件を取得
+        user_analysis_list = []
+        for user, word_list in user_word_dict.items():
+            # カウント順でソート
+            sorted_words = sorted(word_list, key=lambda x: x[1], reverse=True)[:top_n]
+
+            # レスポンス形式に整形
+            top_words_response = [
+                TopWord(
+                    word=wc.base_form,
+                    count=user_count,
+                    part_of_speech=wc.part_of_speech,
+                    appearances=[
+                        WordAppearance(
+                            date=msg.datetime,
+                            user=msg.user,
+                            message=msg.content,
+                        )
+                        for msg in wc.appearances
+                        if msg.user == user  # そのユーザーの発言のみ
+                    ][
+                        :5
+                    ],  # 上位5件の出現情報
+                )
+                for wc, user_count in sorted_words
+            ]
+            user_analysis_list.append(
+                UserWordAnalysis(
+                    user=user,
+                    top_words=top_words_response,
+                )
+            )
+        return user_analysis_list
+
+    def _format_user_message_analysis(
+        self, message_counts: list[MessageCount], top_n: int
+    ) -> list[Any]:
+        """ユーザー別のメッセージ解析結果を整形する
+
+        Args:
+            message_counts (list[MessageCount]): メッセージカウントのリスト（user_countsを含む）
+            top_n (int): 各ユーザーの上位N件
+
+        Returns:
+            list[Any]: ユーザー別メッセージ解析結果
+        """
+        from app.models.response import UserMessageAnalysis
+
+        # ユーザーごとにメッセージカウントを集約
+        user_message_dict: dict[str, list[tuple[MessageCount, int]]] = {}
+        for mc in message_counts:
+            for user, count in mc.user_counts.items():
+                if user not in user_message_dict:
+                    user_message_dict[user] = []
+                user_message_dict[user].append((mc, count))
+
+        # 各ユーザーの上位N件を取得
+        user_analysis_list = []
+        for user, message_list in user_message_dict.items():
+            # カウント順でソート
+            sorted_messages = sorted(message_list, key=lambda x: x[1], reverse=True)[:top_n]
+
+            # レスポンス形式に整形
+            top_messages_response = [
+                TopMessage(
+                    message=mc.message,
+                    count=user_count,
+                    appearances=[
+                        MessageAppearance(
+                            date=msg.datetime,
+                            user=msg.user,
+                            message=msg.content,
+                            match_type="exact",
+                        )
+                        for msg in mc.appearances
+                        if msg.user == user  # そのユーザーの発言のみ
+                    ][
+                        :5
+                    ],  # 上位5件の出現情報
+                )
+                for mc, user_count in sorted_messages
+            ]
+            user_analysis_list.append(
+                UserMessageAnalysis(
+                    user=user,
+                    top_messages=top_messages_response,
+                )
+            )
+        return user_analysis_list

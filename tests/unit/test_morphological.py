@@ -35,21 +35,21 @@ class TestMorphologicalAnalyzer:
         words = analyzer.analyze("今日は良い天気です")
 
         assert len(words) > 0
-        # 名詞「今日」「天気」、形容詞「良い」などが抽出されるはず
+        # 名詞「天気」、形容詞「良い」が抽出されるはず（「今日」はストップワード）
         surfaces = [w.surface for w in words]
-        assert "今日" in surfaces
-        assert "天気" in surfaces
+        assert "良い" in surfaces  # 形容詞
+        assert "天気" in surfaces  # 名詞
 
     def test_analyze_with_various_pos(self) -> None:
         """様々な品詞を含む文の解析テスト"""
         analyzer = MorphologicalAnalyzer()
         words = analyzer.analyze("美しい花が静かに咲いている")
 
-        # 品詞の確認
+        # 品詞の確認（動詞「咲いて」、副詞「静かに」は除外される）
         pos_list = [w.part_of_speech for w in words]
         assert "形容詞" in pos_list  # 美しい
         assert "名詞" in pos_list  # 花、静か（形容動詞語幹）
-        assert "動詞" in pos_list  # 咲いて
+        assert "動詞" not in pos_list  # 動詞は除外される
 
     def test_analyze_empty_string(self) -> None:
         """空文字列の解析テスト"""
@@ -80,7 +80,9 @@ class TestMorphologicalAnalyzer:
         words = analyzer.analyze("今日はPythonでプログラミングする")
 
         surfaces = [w.surface for w in words]
-        assert "今日" in surfaces
+        # 「今日」はストップワード、動詞「する」も除外される
+        # 「Python」もアルファベットのみなので除外されるかも
+        assert "プログラミング" in surfaces
         assert "Python" in surfaces or "プログラミング" in surfaces
 
     def test_analyze_with_numbers(self) -> None:
@@ -88,9 +90,10 @@ class TestMorphologicalAnalyzer:
         analyzer = MorphologicalAnalyzer()
         words = analyzer.analyze("明日は10時に集合です")
 
-        # 数詞は除外されるはず
+        # 数詞は除外されるはず（「明日」もストップワード）
         surfaces = [w.surface for w in words]
-        assert "明日" in surfaces
+        assert "集合" in surfaces  # 名詞
+        assert "10" not in surfaces  # 数詞は除外
         assert "集合" in surfaces
         # 数詞「10」は除外される
         assert "10" not in surfaces
@@ -180,11 +183,9 @@ class TestMorphologicalAnalyzer:
         analyzer = MorphologicalAnalyzer()
         words = analyzer.analyze("今日は晴れです。明日は雨です。")
 
-        # 両方の文から単語が抽出される
+        # 両方の文から単語が抽出される（「今日」「明日」はストップワード）
         surfaces = [w.surface for w in words]
-        assert "今日" in surfaces
         assert "晴れ" in surfaces
-        assert "明日" in surfaces
         assert "雨" in surfaces
 
     def test_long_text(self) -> None:
@@ -193,10 +194,12 @@ class TestMorphologicalAnalyzer:
         long_text = "今日は天気が良いので公園に行きました。" * 10
         words = analyzer.analyze(long_text)
 
-        # 適切に解析されることを確認
+        # 適切に解析されることを確認（「今日」はストップワード、動詞は除外）
         assert len(words) > 0
         surfaces = [w.surface for w in words]
-        assert "今日" in surfaces
+        assert "天気" in surfaces
+        assert "良い" in surfaces
+        assert "公園" in surfaces
         assert "公園" in surfaces
 
     def test_mecab_initialization_error(self) -> None:

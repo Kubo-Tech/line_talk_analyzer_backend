@@ -24,6 +24,7 @@ class TestWordCount:
             base_form="テスト",
             count=5,
             part_of_speech="名詞",
+            user_counts={"テストユーザー": 5},
             appearances=[message],
         )
 
@@ -31,6 +32,7 @@ class TestWordCount:
         assert word_count.base_form == "テスト"
         assert word_count.count == 5
         assert word_count.part_of_speech == "名詞"
+        assert word_count.user_counts == {"テストユーザー": 5}
         assert len(word_count.appearances) == 1
 
 
@@ -47,19 +49,15 @@ class TestMessageCount:
 
         message_count = MessageCount(
             message="テストメッセージ",
-            exact_count=5,
-            partial_count=3,
-            total_count=8,
-            exact_appearances=[message],
-            partial_appearances=[],
+            count=5,
+            user_counts={"テストユーザー": 5},
+            appearances=[message],
         )
 
         assert message_count.message == "テストメッセージ"
-        assert message_count.exact_count == 5
-        assert message_count.partial_count == 3
-        assert message_count.total_count == 8
-        assert len(message_count.exact_appearances) == 1
-        assert len(message_count.partial_appearances) == 0
+        assert message_count.count == 5
+        assert message_count.user_counts == {"テストユーザー": 5}
+        assert len(message_count.appearances) == 1
 
 
 class TestWordCounter:
@@ -196,9 +194,9 @@ class TestWordCounter:
         assert len(word_counts) == 1
         assert word_counts[0].word == "天気"
 
-        # 最大文字数1文字でフィルタ
+        # 最大文字数1文字でフィルタ（デフォルトmin_word_length=2なので、両方を指定）
         word_counts = counter.count_morphological_words(
-            messages, words_by_message, max_word_length=1
+            messages, words_by_message, min_word_length=1, max_word_length=1
         )
         assert len(word_counts) == 1
         assert word_counts[0].word == "あ"
@@ -316,81 +314,10 @@ class TestWordCounter:
         message_count_dict = {mc.message: mc for mc in message_counts}
 
         assert "おはよう" in message_count_dict
-        assert message_count_dict["おはよう"].exact_count == 2
+        assert message_count_dict["おはよう"].count == 2
 
         assert "こんにちは" in message_count_dict
-        assert message_count_dict["こんにちは"].exact_count == 1
-
-    def test_count_full_messages_partial_match(self) -> None:
-        """メッセージ全文の部分一致カウントテスト"""
-        messages = [
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 12),
-                user="ユーザーA",
-                content="そんな",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 15),
-                user="ユーザーB",
-                content="そんな；；",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 20),
-                user="ユーザーC",
-                content="そんなwww",
-            ),
-        ]
-
-        counter = WordCounter()
-        message_counts = counter.count_full_messages(messages)
-
-        # 各メッセージのカウント確認
-        message_count_dict = {mc.message: mc for mc in message_counts}
-
-        # "そんな"は完全一致1回、部分一致2回
-        assert message_count_dict["そんな"].exact_count == 1
-        assert message_count_dict["そんな"].partial_count == 2
-        assert message_count_dict["そんな"].total_count == 3
-
-        # "そんな；；"は完全一致1回、部分一致0回
-        assert message_count_dict["そんな；；"].exact_count == 1
-        assert message_count_dict["そんな；；"].partial_count == 0
-        assert message_count_dict["そんな；；"].total_count == 1
-
-    def test_count_full_messages_nested_partial_match(self) -> None:
-        """入れ子状の部分一致テスト"""
-        messages = [
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 12),
-                user="ユーザーA",
-                content="A",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 15),
-                user="ユーザーB",
-                content="AB",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 20),
-                user="ユーザーC",
-                content="ABC",
-            ),
-        ]
-
-        counter = WordCounter()
-        # min_message_length=1に設定して1文字も検索対象にする
-        message_counts = counter.count_full_messages(messages, min_message_length=1)
-
-        message_count_dict = {mc.message: mc for mc in message_counts}
-
-        # "A"は"AB"と"ABC"に含まれる
-        assert message_count_dict["A"].partial_count == 2
-
-        # "AB"は"ABC"に含まれる
-        assert message_count_dict["AB"].partial_count == 1
-
-        # "ABC"はどれにも含まれない
-        assert message_count_dict["ABC"].partial_count == 0
+        assert message_count_dict["こんにちは"].count == 1
 
     def test_count_full_messages_empty(self) -> None:
         """空のメッセージリストのテスト"""
@@ -426,26 +353,27 @@ class TestWordCounter:
 
         counter = WordCounter()
 
-        # 最小文字数2文字：「短」は部分一致検索対象外
+        # 最小文字数2文字：「短」は集計対象外
         message_counts = counter.count_full_messages(messages, min_message_length=2)
         message_count_dict = {mc.message: mc for mc in message_counts}
 
-        # 「短」は1文字なので部分一致検索されない
-        assert "短" in message_count_dict
-        assert message_count_dict["短"].exact_count == 1
-        assert message_count_dict["短"].partial_count == 0  # 検索対象外
+        # 「短」は1文字なので集計されない
+        assert "短" not in message_count_dict
+        # 「中間」は2文字なので集計される
+        assert "中間" in message_count_dict
+        assert message_count_dict["中間"].count == 1
 
-        # 「中間」は2文字以上なので部分一致検索される
-        assert message_count_dict["中間"].partial_count == 1  # 「短中間」に含まれる
-
-        # 最大文字数2文字：「これは長い」は部分一致検索対象外
-        message_counts = counter.count_full_messages(messages, max_message_length=2)
+        # 最大文字数2文字：「これは長い」は集計対象外
+        message_counts = counter.count_full_messages(
+            messages, min_message_length=1, max_message_length=2
+        )
         message_count_dict = {mc.message: mc for mc in message_counts}
 
-        # 「これは長い」は5文字なので部分一致検索されない
-        assert "これは長い" in message_count_dict
-        assert message_count_dict["これは長い"].exact_count == 1
-        assert message_count_dict["これは長い"].partial_count == 0  # 検索対象外
+        # 「これは長い」は5文字なので集計されない
+        assert "これは長い" not in message_count_dict
+        # 「短」「中間」は集計される
+        assert "短" in message_count_dict
+        assert "中間" in message_count_dict
 
     def test_count_full_messages_invalid_parameters(self) -> None:
         """count_full_messagesのパラメータ検証テスト"""
@@ -477,111 +405,6 @@ class TestWordCounter:
         )
         assert "min=10" in str(excinfo.value)
         assert "max=5" in str(excinfo.value)
-
-    def test_find_partial_matches(self) -> None:
-        """部分一致検索のテスト"""
-        messages = [
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 12),
-                user="ユーザーA",
-                content="test",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 15),
-                user="ユーザーB",
-                content="test123",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 20),
-                user="ユーザーC",
-                content="hello",
-            ),
-        ]
-
-        counter = WordCounter()
-        partial_matches = counter._find_partial_matches("test", messages)
-
-        # "test"を含むのは"test123"のみ（完全一致は除外）
-        assert len(partial_matches) == 1
-        assert partial_matches[0].content == "test123"
-
-    def test_find_partial_matches_no_match(self) -> None:
-        """部分一致が見つからない場合のテスト"""
-        messages = [
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 12),
-                user="ユーザーA",
-                content="hello",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 15),
-                user="ユーザーB",
-                content="world",
-            ),
-        ]
-
-        counter = WordCounter()
-        partial_matches = counter._find_partial_matches("test", messages)
-
-        assert len(partial_matches) == 0
-
-    def test_find_partial_matches_multiple_occurrences(self) -> None:
-        """同一メッセージ内に複数回出現する場合のテスト"""
-        messages = [
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 12),
-                user="ユーザーA",
-                content="＾＾",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 15),
-                user="ユーザーB",
-                content="それな＾＾＾＾",
-            ),
-            Message(
-                datetime=datetime(2024, 8, 1, 22, 20),
-                user="ユーザーC",
-                content="＾＾www＾＾",
-            ),
-        ]
-
-        counter = WordCounter()
-        partial_matches = counter._find_partial_matches("＾＾", messages)
-
-        # 「それな＾＾＾＾」には「＾＾」が2回、「＾＾www＾＾」には2回含まれる
-        assert len(partial_matches) == 4
-        # 全て同じメッセージオブジェクトではなく、参照が正しいか確認
-        assert partial_matches[0].content == "それな＾＾＾＾"
-        assert partial_matches[1].content == "それな＾＾＾＾"
-        assert partial_matches[2].content == "＾＾www＾＾"
-        assert partial_matches[3].content == "＾＾www＾＾"
-
-    def test_count_occurrences(self) -> None:
-        """出現回数カウントのテスト"""
-        counter = WordCounter()
-
-        # 通常のケース（重複なし）
-        # 「＾＾＾＾」に「＾＾」は2回（最初の「＾＾」を取り除いて残りの「＾＾」）
-        assert counter._count_occurrences("＾＾", "それな＾＾＾＾") == 2
-        assert counter._count_occurrences("＾＾", "＾＾www＾＾") == 2
-        assert counter._count_occurrences("test", "testtest") == 2
-
-        # 重複なしのケース
-        # 「AAA」に「AA」は1回（最初の「AA」を取り除いて残りは「A」のみ）
-        assert counter._count_occurrences("AA", "AAA") == 1
-        # 「AAAA」に「AA」は2回（最初の「AA」を取り除いて残り「AA」で1回）
-        assert counter._count_occurrences("AA", "AAAA") == 2
-        # 「AAAAA」に「AA」は2回（「AA」「AA」「A」）
-        assert counter._count_occurrences("AA", "AAAAA") == 2
-        # 「AAAAAA」に「AA」は3回
-        assert counter._count_occurrences("AA", "AAAAAA") == 3
-
-        # 見つからない場合
-        assert counter._count_occurrences("test", "hello") == 0
-
-        # 空文字列
-        assert counter._count_occurrences("", "test") == 0
-        assert counter._count_occurrences("test", "") == 0
 
     def test_word_appearances_recorded(
         self,
@@ -624,12 +447,7 @@ class TestWordCounter:
 
         message_count_dict = {mc.message: mc for mc in message_counts}
 
-        # "test"の完全一致出現情報
-        test_exact = message_count_dict["test"].exact_appearances
-        assert len(test_exact) == 2
-        assert all(msg.content == "test" for msg in test_exact)
-
-        # "test"の部分一致出現情報
-        test_partial = message_count_dict["test"].partial_appearances
-        assert len(test_partial) == 1
-        assert test_partial[0].content == "test123"
+        # "test"の出現情報
+        test_appearances = message_count_dict["test"].appearances
+        assert len(test_appearances) == 2
+        assert all(msg.content == "test" for msg in test_appearances)

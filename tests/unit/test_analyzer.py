@@ -101,10 +101,10 @@ class TestTalkAnalyzer:
         """メッセージのソート順確認のテスト"""
         result = analyzer.analyze(sample_talk_content, top_n=10)
 
-        # メッセージが合計カウント降順でソートされていることを確認
+        # メッセージがカウント降順でソートされていることを確認
         top_messages = result.data.full_message_analysis.top_messages
         for i in range(len(top_messages) - 1):
-            assert top_messages[i].total_count >= top_messages[i + 1].total_count
+            assert top_messages[i].count >= top_messages[i + 1].count
 
     def test_analyze_appearances(self, analyzer: TalkAnalyzer, sample_talk_content: str) -> None:
         """出現情報の記録確認のテスト"""
@@ -127,13 +127,9 @@ class TestTalkAnalyzer:
         top_messages = result.data.full_message_analysis.top_messages
         if len(top_messages) > 0:
             first_message = top_messages[0]
-            # 完全一致と部分一致の出現情報が記録されていることを確認
-            exact_count = sum(1 for app in first_message.appearances if app.match_type == "exact")
-            partial_count = sum(
-                1 for app in first_message.appearances if app.match_type == "partial"
-            )
-            assert exact_count == first_message.exact_count
-            assert partial_count == first_message.partial_count
+            # 出現情報が記録されていることを確認
+            assert first_message.count == len(first_message.appearances)
+            assert all(app.match_type == "exact" for app in first_message.appearances)
 
     def test_analyze_with_length_filters(
         self, analyzer: TalkAnalyzer, sample_talk_content: str
@@ -241,9 +237,7 @@ class TestTalkAnalyzer:
         top_messages = result.data.full_message_analysis.top_messages
         ryoukai_message = next((m for m in top_messages if m.message == "了解"), None)
         assert ryoukai_message is not None
-        assert ryoukai_message.exact_count == 2
-        # 「了解です」に「了解」が部分一致
-        assert ryoukai_message.partial_count == 1
+        assert ryoukai_message.count == 2
 
     def test_analyze_invalid_top_n(self, analyzer: TalkAnalyzer) -> None:
         """無効なtop_nパラメータのテスト"""
@@ -403,9 +397,30 @@ class TestTalkAnalyzer:
         msg2 = Message(datetime(2024, 1, 1, 10, 1), "ユーザーB", "テスト2")
 
         word_counts = [
-            WordCount("単語A", "単語A", 5, "名詞", [msg1, msg1, msg1, msg1, msg1]),
-            WordCount("単語B", "単語B", 10, "名詞", [msg2] * 10),
-            WordCount("単語C", "単語C", 3, "名詞", [msg1, msg1, msg1]),
+            WordCount(
+                "単語A",
+                "単語A",
+                5,
+                "名詞",
+                {"ユーザーA": 5},
+                [msg1, msg1, msg1, msg1, msg1],
+            ),
+            WordCount(
+                "単語B",
+                "単語B",
+                10,
+                "名詞",
+                {"ユーザーB": 10},
+                [msg2] * 10,
+            ),
+            WordCount(
+                "単語C",
+                "単語C",
+                3,
+                "名詞",
+                {"ユーザーA": 3},
+                [msg1, msg1, msg1],
+            ),
         ]
 
         # 上位2件を取得
@@ -427,19 +442,34 @@ class TestTalkAnalyzer:
         msg2 = Message(datetime(2024, 1, 1, 10, 1), "ユーザーB", "メッセージB")
 
         message_counts = [
-            MessageCount("メッセージA", 3, 2, 5, [msg1, msg1, msg1], [msg2, msg2]),
-            MessageCount("メッセージB", 5, 3, 8, [msg2] * 5, [msg1] * 3),
-            MessageCount("メッセージC", 2, 1, 3, [msg1, msg1], [msg2]),
+            MessageCount(
+                "メッセージA",
+                5,
+                {"ユーザーA": 5},
+                [msg1] * 5,
+            ),
+            MessageCount(
+                "メッセージB",
+                8,
+                {"ユーザーB": 8},
+                [msg2] * 8,
+            ),
+            MessageCount(
+                "メッセージC",
+                3,
+                {"ユーザーA": 3},
+                [msg1] * 3,
+            ),
         ]
 
         # 上位2件を取得
         top_messages = analyzer._get_top_messages(message_counts, 2)
 
         assert len(top_messages) == 2
-        assert top_messages[0].message == "メッセージB"  # 合計8
-        assert top_messages[0].total_count == 8
-        assert top_messages[1].message == "メッセージA"  # 合計5
-        assert top_messages[1].total_count == 5
+        assert top_messages[0].message == "メッセージB"  # 8回
+        assert top_messages[0].count == 8
+        assert top_messages[1].message == "メッセージA"  # 5回
+        assert top_messages[1].count == 5
 
     def test_format_response(self, analyzer: TalkAnalyzer) -> None:
         """_format_responseメソッドのテスト"""
@@ -454,11 +484,23 @@ class TestTalkAnalyzer:
         ]
 
         word_counts = [
-            WordCount("テスト", "テスト", 3, "名詞", messages),
+            WordCount(
+                "テスト",
+                "テスト",
+                3,
+                "名詞",
+                {"ユーザーA": 2, "ユーザーB": 1},
+                messages,
+            ),
         ]
 
         message_counts = [
-            MessageCount("テスト1", 1, 0, 1, [messages[0]], []),
+            MessageCount(
+                "テスト1",
+                1,
+                {"ユーザーA": 1},
+                [messages[0]],
+            ),
         ]
 
         # レスポンスを整形

@@ -184,16 +184,6 @@ class TestMessageAppearance:
         )
         assert appearance.match_type == "exact"
 
-    def test_create_partial_match(self) -> None:
-        """部分一致の出現情報テスト"""
-        appearance = MessageAppearance(
-            date=datetime(2024, 8, 1, 22, 12, 0),
-            user="hoge山fuga太郎",
-            message="おうち帰りたいよー",
-            match_type="partial",
-        )
-        assert appearance.match_type == "partial"
-
     def test_invalid_match_type(self) -> None:
         """不正な一致タイプのバリデーション"""
         with pytest.raises(ValidationError):
@@ -212,24 +202,18 @@ class TestTopMessage:
         """インスタンス生成のテスト"""
         message = TopMessage(
             message="おうち帰りたい",
-            exact_count=15,
-            partial_count=8,
-            total_count=23,
+            count=23,
             appearances=[],
         )
         assert message.message == "おうち帰りたい"
-        assert message.exact_count == 15
-        assert message.partial_count == 8
-        assert message.total_count == 23
+        assert message.count == 23
 
     def test_count_validation(self) -> None:
         """カウントのバリデーション"""
         with pytest.raises(ValidationError):
             TopMessage(
                 message="test",
-                exact_count=-1,
-                partial_count=0,
-                total_count=1,
+                count=0,
             )
 
 
@@ -245,9 +229,7 @@ class TestMessageAnalysisResult:
         """メッセージを含むインスタンス生成テスト"""
         message = TopMessage(
             message="おうち帰りたい",
-            exact_count=15,
-            partial_count=8,
-            total_count=23,
+            count=23,
             appearances=[],
         )
         result = MessageAnalysisResult(top_messages=[message])

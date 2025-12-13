@@ -36,9 +36,7 @@ class TopWord(BaseModel):
     word: str = Field(description="単語")
     count: int = Field(ge=1, description="出現回数")
     part_of_speech: str = Field(description="品詞")
-    appearances: list[WordAppearance] = Field(
-        default_factory=list, description="出現情報のリスト"
-    )
+    appearances: list[WordAppearance] = Field(default_factory=list, description="出現情報のリスト")
 
 
 class MorphologicalAnalysis(BaseModel):
@@ -48,9 +46,7 @@ class MorphologicalAnalysis(BaseModel):
         top_words (list[TopWord]): 上位単語のリスト
     """
 
-    top_words: list[TopWord] = Field(
-        default_factory=list, description="上位単語のリスト"
-    )
+    top_words: list[TopWord] = Field(default_factory=list, description="上位単語のリスト")
 
 
 class MessageAppearance(BaseModel):
@@ -66,7 +62,7 @@ class MessageAppearance(BaseModel):
     date: datetime = Field(description="出現日時")
     user: str = Field(description="ユーザー名")
     message: str = Field(description="メッセージ本文")
-    match_type: Literal["exact", "partial"] = Field(description="一致タイプ")
+    match_type: Literal["exact"] = Field(description="一致タイプ", default="exact")
 
 
 class TopMessage(BaseModel):
@@ -74,16 +70,12 @@ class TopMessage(BaseModel):
 
     Attributes:
         message (str): メッセージ本文
-        exact_count (int): 完全一致カウント
-        partial_count (int): 部分一致カウント
-        total_count (int): 合計カウント
+        count (int): 出現回数
         appearances (list[MessageAppearance]): 出現情報のリスト
     """
 
     message: str = Field(description="メッセージ本文")
-    exact_count: int = Field(ge=0, description="完全一致カウント")
-    partial_count: int = Field(ge=0, description="部分一致カウント")
-    total_count: int = Field(ge=1, description="合計カウント")
+    count: int = Field(ge=1, description="出現回数")
     appearances: list[MessageAppearance] = Field(
         default_factory=list, description="出現情報のリスト"
     )
@@ -98,6 +90,48 @@ class MessageAnalysisResult(BaseModel):
 
     top_messages: list[TopMessage] = Field(
         default_factory=list, description="上位メッセージのリスト"
+    )
+
+
+class UserWordAnalysis(BaseModel):
+    """ユーザー別の単語解析結果
+
+    Attributes:
+        user (str): ユーザー名
+        top_words (list[TopWord]): 上位単語のリスト
+    """
+
+    user: str = Field(description="ユーザー名")
+    top_words: list[TopWord] = Field(default_factory=list, description="上位単語のリスト")
+
+
+class UserMessageAnalysis(BaseModel):
+    """ユーザー別のメッセージ解析結果
+
+    Attributes:
+        user (str): ユーザー名
+        top_messages (list[TopMessage]): 上位メッセージのリスト
+    """
+
+    user: str = Field(description="ユーザー名")
+    top_messages: list[TopMessage] = Field(
+        default_factory=list, description="上位メッセージのリスト"
+    )
+
+
+class UserAnalysis(BaseModel):
+    """ユーザー別の解析結果
+
+    Attributes:
+        word_analysis (list[UserWordAnalysis]): ユーザー別単語解析結果
+        message_analysis (list[UserMessageAnalysis]): ユーザー別メッセージ解析結果
+    """
+
+    word_analysis: list[UserWordAnalysis] = Field(
+        default_factory=list, description="ユーザー別単語解析結果"
+    )
+    message_analysis: list[UserMessageAnalysis] = Field(
+        default_factory=list, description="ユーザー別メッセージ解析結果"
     )
 
 
@@ -122,14 +156,16 @@ class WordAnalysisResult(BaseModel):
         total_users (int): 総ユーザー数
         morphological_analysis (MorphologicalAnalysis): 形態素解析結果
         full_message_analysis (MessageAnalysisResult): メッセージ全文解析結果
+        user_analysis (UserAnalysis | None): ユーザー別解析結果（オプション）
     """
 
     analysis_period: AnalysisPeriod = Field(description="解析期間")
     total_messages: int = Field(ge=0, description="総メッセージ数")
     total_users: int = Field(ge=0, description="総ユーザー数")
     morphological_analysis: MorphologicalAnalysis = Field(description="形態素解析結果")
-    full_message_analysis: MessageAnalysisResult = Field(
-        description="メッセージ全文解析結果"
+    full_message_analysis: MessageAnalysisResult = Field(description="メッセージ全文解析結果")
+    user_analysis: UserAnalysis | None = Field(
+        default=None, description="ユーザー別解析結果（オプション）"
     )
 
 
