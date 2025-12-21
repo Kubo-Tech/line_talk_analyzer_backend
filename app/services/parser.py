@@ -70,7 +70,8 @@ class LineMessageParser:
 
         for line in file:
             line_number += 1
-            line = line.rstrip("\n")
+            # すべての改行コード（\r\n、\n、\r）を削除
+            line = line.rstrip("\r\n")
 
             # 空行をスキップ
             if not line:
