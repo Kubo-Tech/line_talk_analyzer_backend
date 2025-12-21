@@ -623,6 +623,59 @@ class Message:
 
 ---
 
+### Phase 6: デプロイと公開（PR#9完了後）
+
+#### PR#10: Renderへのデプロイ
+**目的**: バックエンドAPIを本番環境に公開
+
+**タスク**:
+- [ ] Renderアカウントの作成
+  - https://render.com でGitHubアカウントを使用してサインアップ
+- [ ] Web Serviceの作成
+  - Dashboard → "New" → "Web Service"
+  - GitHubリポジトリ `line_talk_analyzer_backend` を接続
+  - Root Directoryを `.` に設定
+- [ ] デプロイ設定
+  ```yaml
+  Name: line-talk-analyzer-api
+  Environment: Docker
+  Region: Singapore (最寄りのアジアリージョン)
+  Branch: main
+  Dockerfile Path: ./Dockerfile
+  Docker Build Context Directory: ./
+  Plan: Free
+  ```
+- [ ] 環境変数の設定
+  ```
+  PORT=8001
+  ALLOWED_ORIGINS=http://localhost:3000,https://<vercel-url>.vercel.app
+  ```
+  ※ Vercelデプロイ後にURLを追加更新
+- [ ] デプロイの実行
+  - "Create Web Service" をクリック
+  - 自動的にDockerビルド＆デプロイが開始
+  - URLが発行される（例: `https://line-talk-analyzer-api.onrender.com`）
+- [ ] 動作確認
+  - ヘルスチェック: `https://<your-url>.onrender.com/api/v1/health`
+  - レスポンスが返ることを確認
+- [ ] 注意事項の文書化
+  - 無料プランは15分アイドルでスリープ
+  - 初回アクセス時は起動に30秒程度かかる
+  - 月750時間制限（実質24/7稼働可能）
+
+**テスト計画**:
+- [ ] デプロイ成功の確認
+- [ ] ヘルスチェックエンドポイントの動作確認
+- [ ] 解析エンドポイントの動作確認（curl/Postmanで実行）
+- [ ] CORS設定の動作確認
+- [ ] スリープからの復帰テスト（15分以上放置後にアクセス）
+
+**依存**: PR#9（E2Eテストと最終調整）
+
+**完了**: 
+
+---
+
 ## 9. テスト戦略
 
 ### 9.1 テストレベル

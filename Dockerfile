@@ -36,8 +36,11 @@ RUN pip install --no-cache-dir --upgrade pip \
 # アプリケーションコードをコピー
 COPY . /app/
 
-# ポート8000を公開
-EXPOSE 8000
+# 環境変数PORTのデフォルト値を設定
+ENV PORT=8001
 
-# FastAPIアプリケーションを起動
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# ポート8001を公開
+EXPOSE 8001
+
+# FastAPIアプリケーションを起動（環境変数PORTを使用）
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
