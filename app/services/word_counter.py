@@ -22,6 +22,8 @@ class WordCount:
         part_of_speech (str): 品詞
         user_counts (dict[str, int]): 発言者ごとの出現回数
         appearances (list[Message]): 出現したメッセージのリスト（時系列データ用）
+            NOTE: Issue#01でレスポンスから削除されましたが、
+            将来の時系列解析機能実装のために内部処理としては保持し続けます
     """
 
     word: str
@@ -41,6 +43,8 @@ class MessageCount:
         count (int): 出現回数（全体）
         user_counts (dict[str, int]): 発言者ごとの出現回数
         appearances (list[Message]): 出現したメッセージのリスト（時系列データ用）
+            NOTE: Issue#01でレスポンスから削除されましたが、
+            将来の時系列解析機能実装のために内部処理としては保持し続けます
     """
 
     message: str

@@ -3,24 +3,28 @@
 APIレスポンスのデータモデルを定義する
 """
 
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
-class WordAppearance(BaseModel):
-    """単語の出現情報
-
-    Attributes:
-        date (datetime): 出現日時
-        user (str): ユーザー名
-        message (str): メッセージ本文
-    """
-
-    date: datetime = Field(description="出現日時")
-    user: str = Field(description="ユーザー名")
-    message: str = Field(description="メッセージ本文")
+# NOTE: appearancesフィールドは削除されました（Issue#01）
+# レスポンスサイズ削減のため（約4MB → 0.05MB）
+# 将来の時系列解析機能実装時は、以下のアプローチを検討：
+# 1. 専用エンドポイント追加: /api/v1/analyze/timeline
+# 2. ページネーション実装
+# 3. データベースに保存して必要時にクエリ
+# 4. サマリーデータ（日別集計など）のみ返却
+#
+# class WordAppearance(BaseModel):
+#     """単語の出現情報
+#     Attributes:
+#         date (datetime): 出現日時
+#         user (str): ユーザー名
+#         message (str): メッセージ本文
+#     """
+#     date: datetime = Field(description="出現日時")
+#     user: str = Field(description="ユーザー名")
+#     message: str = Field(description="メッセージ本文")
 
 
 class TopWord(BaseModel):
@@ -30,13 +34,11 @@ class TopWord(BaseModel):
         word (str): 単語
         count (int): 出現回数
         part_of_speech (str): 品詞
-        appearances (list[WordAppearance]): 出現情報のリスト
     """
 
     word: str = Field(description="単語")
     count: int = Field(ge=1, description="出現回数")
     part_of_speech: str = Field(description="品詞")
-    appearances: list[WordAppearance] = Field(default_factory=list, description="出現情報のリスト")
 
 
 class MorphologicalAnalysis(BaseModel):
@@ -49,20 +51,22 @@ class MorphologicalAnalysis(BaseModel):
     top_words: list[TopWord] = Field(default_factory=list, description="上位単語のリスト")
 
 
-class MessageAppearance(BaseModel):
-    """メッセージの出現情報
-
-    Attributes:
-        date (datetime): 出現日時
-        user (str): ユーザー名
-        message (str): メッセージ本文
-        match_type (Literal["exact", "partial"]): 一致タイプ
-    """
-
-    date: datetime = Field(description="出現日時")
-    user: str = Field(description="ユーザー名")
-    message: str = Field(description="メッセージ本文")
-    match_type: Literal["exact"] = Field(description="一致タイプ", default="exact")
+# NOTE: appearancesフィールドは削除されました（Issue#01）
+# レスポンスサイズ削減のため（約4MB → 0.05MB）
+# 将来の時系列解析機能実装時は、専用エンドポイントやDBを活用
+#
+# class MessageAppearance(BaseModel):
+#     """メッセージの出現情報
+#     Attributes:
+#         date (datetime): 出現日時
+#         user (str): ユーザー名
+#         message (str): メッセージ本文
+#         match_type (Literal["exact", "partial"]): 一致タイプ
+#     """
+#     date: datetime = Field(description="出現日時")
+#     user: str = Field(description="ユーザー名")
+#     message: str = Field(description="メッセージ本文")
+#     match_type: Literal["exact"] = Field(description="一致タイプ", default="exact")
 
 
 class TopMessage(BaseModel):
@@ -71,14 +75,10 @@ class TopMessage(BaseModel):
     Attributes:
         message (str): メッセージ本文
         count (int): 出現回数
-        appearances (list[MessageAppearance]): 出現情報のリスト
     """
 
     message: str = Field(description="メッセージ本文")
     count: int = Field(ge=1, description="出現回数")
-    appearances: list[MessageAppearance] = Field(
-        default_factory=list, description="出現情報のリスト"
-    )
 
 
 class MessageAnalysisResult(BaseModel):

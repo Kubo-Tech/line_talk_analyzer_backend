@@ -3,8 +3,6 @@
 リクエスト/レスポンスモデルの単体テストを実施する
 """
 
-from datetime import datetime
-
 import pytest
 from pydantic import ValidationError
 
@@ -15,12 +13,10 @@ from app.models import (
     ErrorDetail,
     ErrorResponse,
     MessageAnalysisResult,
-    MessageAppearance,
     MorphologicalAnalysis,
     TopMessage,
     TopWord,
     WordAnalysisResult,
-    WordAppearance,
 )
 
 
@@ -101,53 +97,15 @@ class TestAnalyzeRequest:
         assert request.exclude_parts == "助詞"
 
 
-class TestWordAppearance:
-    """WordAppearanceモデルのテスト"""
-
-    def test_create_instance(self) -> None:
-        """インスタンス生成のテスト"""
-        appearance = WordAppearance(
-            date=datetime(2024, 8, 1, 22, 12, 0),
-            user="hoge山fuga太郎",
-            message="おうち帰りたい",
-        )
-        assert appearance.date == datetime(2024, 8, 1, 22, 12, 0)
-        assert appearance.user == "hoge山fuga太郎"
-        assert appearance.message == "おうち帰りたい"
-
-    def test_json_serialization(self) -> None:
-        """JSONシリアライズのテスト"""
-        appearance = WordAppearance(
-            date=datetime(2024, 8, 1, 22, 12, 0),
-            user="hoge山fuga太郎",
-            message="おうち帰りたい",
-        )
-        json_data = appearance.model_dump()
-        assert json_data["user"] == "hoge山fuga太郎"
-        assert json_data["message"] == "おうち帰りたい"
-
-
 class TestTopWord:
     """TopWordモデルのテスト"""
 
     def test_create_instance(self) -> None:
         """インスタンス生成のテスト"""
-        word = TopWord(word="おうち", count=42, part_of_speech="名詞", appearances=[])
+        word = TopWord(word="おうち", count=42, part_of_speech="名詞")
         assert word.word == "おうち"
         assert word.count == 42
         assert word.part_of_speech == "名詞"
-        assert word.appearances == []
-
-    def test_with_appearances(self) -> None:
-        """出現情報を含むテスト"""
-        appearance = WordAppearance(
-            date=datetime(2024, 8, 1, 22, 12, 0),
-            user="hoge山fuga太郎",
-            message="おうち帰りたい",
-        )
-        word = TopWord(word="おうち", count=1, part_of_speech="名詞", appearances=[appearance])
-        assert len(word.appearances) == 1
-        assert word.appearances[0].message == "おうち帰りたい"
 
     def test_count_validation(self) -> None:
         """カウントのバリデーション（1以上である必要がある）"""
@@ -165,34 +123,10 @@ class TestMorphologicalAnalysis:
 
     def test_create_with_words(self) -> None:
         """単語を含むインスタンス生成テスト"""
-        word = TopWord(word="おうち", count=42, part_of_speech="名詞", appearances=[])
+        word = TopWord(word="おうち", count=42, part_of_speech="名詞")
         analysis = MorphologicalAnalysis(top_words=[word])
         assert len(analysis.top_words) == 1
         assert analysis.top_words[0].word == "おうち"
-
-
-class TestMessageAppearance:
-    """MessageAppearanceモデルのテスト"""
-
-    def test_create_exact_match(self) -> None:
-        """完全一致の出現情報テスト"""
-        appearance = MessageAppearance(
-            date=datetime(2024, 8, 1, 22, 12, 0),
-            user="hoge山fuga太郎",
-            message="おうち帰りたい",
-            match_type="exact",
-        )
-        assert appearance.match_type == "exact"
-
-    def test_invalid_match_type(self) -> None:
-        """不正な一致タイプのバリデーション"""
-        with pytest.raises(ValidationError):
-            MessageAppearance(
-                date=datetime(2024, 8, 1, 22, 12, 0),
-                user="hoge山fuga太郎",
-                message="test",
-                match_type="invalid",  # type: ignore
-            )
 
 
 class TestTopMessage:
@@ -203,7 +137,6 @@ class TestTopMessage:
         message = TopMessage(
             message="おうち帰りたい",
             count=23,
-            appearances=[],
         )
         assert message.message == "おうち帰りたい"
         assert message.count == 23
@@ -230,7 +163,6 @@ class TestMessageAnalysisResult:
         message = TopMessage(
             message="おうち帰りたい",
             count=23,
-            appearances=[],
         )
         result = MessageAnalysisResult(top_messages=[message])
         assert len(result.top_messages) == 1

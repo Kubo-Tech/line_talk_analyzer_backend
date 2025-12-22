@@ -136,14 +136,7 @@ line_talk_analyzer_backend/
         {
           "word": "おうち",
           "count": 42,
-          "part_of_speech": "名詞",
-          "appearances": [
-            {
-              "date": "2024-08-01T22:12:00",
-              "user": "hoge山fuga太郎",
-              "message": "おうち帰りたい"
-            }
-          ]
+          "part_of_speech": "名詞"
         }
       ]
     },
@@ -151,23 +144,7 @@ line_talk_analyzer_backend/
       "top_messages": [
         {
           "message": "おうち帰りたい",
-          "exact_count": 15,
-          "partial_count": 8,
-          "total_count": 23,
-          "appearances": [
-            {
-              "date": "2024-08-01T22:12:00",
-              "user": "hoge山fuga太郎",
-              "message": "おうち帰りたい",
-              "match_type": "exact"
-            },
-            {
-              "date": "2024-08-01T22:20:00",
-              "user": "hoge山fuga太郎",
-              "message": "おうち帰りたいよー",
-              "match_type": "partial"
-            }
-          ]
+          "count": 23
         }
       ]
     }
@@ -673,6 +650,81 @@ class Message:
 **依存**: PR#9（E2Eテストと最終調整）
 
 **完了**: 
+
+---
+
+#### Issue#01: appearancesフィールドの削除
+**目的**: レスポンスデータサイズの削減によるモバイル対応の改善
+
+**背景**:
+- デプロイ後のスマホでの動作確認で問題が発覚
+- 会話量の多いトーク履歴（約27万メッセージ）の解析結果が約4MBと巨大
+- フロントエンド側でセッションストレージに保存しようとすると容量制限でエラー
+- 試験的に`appearances`フィールドを削除したところ、0.05MBまで削減（約80分の1）
+- `appearances`はもともと時系列解析などの将来的な拡張を見越して用意したもの
+- しかし、現時点でフロントエンドでは使用されておらず、データ量だけが増大している
+- **教訓**: フロントエンドに渡すデータは、バックエンド側で適切に処理・集約してから最小限のデータのみを返すべき
+
+**タスク**:
+- [ ] `app/models/response.py`の修正
+  - `WordAnalysisResult`から`appearances`フィールドを削除
+  - `MessageAnalysisResult`から`appearances`フィールドを削除
+  - `UserWordAnalysisResult`から`appearances`フィールドを削除（存在する場合）
+  - `UserMessageAnalysisResult`から`appearances`フィールドを削除（存在する場合）
+- [ ] `app/services/word_counter.py`の修正
+  - `appearances`収集処理をコメントアウト
+  - 将来の時系列解析のために処理ロジックは保持
+  - コメントで削除理由と今後の拡張方法を明記
+- [ ] `app/services/analyzer.py`の修正
+  - `appearances`に関する処理をコメントアウト
+  - レスポンス整形時に`appearances`を含めない
+  - 将来の拡張のためのコメントを追加
+- [ ] テストコードの修正
+  - `tests/unit/test_models.py`: `appearances`の検証を削除
+  - `tests/unit/test_word_counter.py`: `appearances`のテストをコメントアウト（処理は残すため）
+  - `tests/unit/test_analyzer.py`: `appearances`のアサーションを削除
+  - `tests/integration/test_api.py`: APIレスポンスの`appearances`チェックを削除
+  - `tests/e2e/test_real_data.py`: `appearances`の検証を削除
+- [ ] ドキュメントの更新
+  - `README.md`: レスポンス例から`appearances`を削除
+  - `doc/SPEC.md`: 
+    - セクション3.2.1のレスポンス例を更新
+    - Issue#01の完了チェック
+
+**将来の拡張に向けた方針**:
+- 時系列解析、ユーザー行動分析などの機能を追加する際は、以下のアプローチを検討：
+  1. **専用エンドポイントの追加**: `/api/v1/analyze/timeline`など、詳細データが必要な場合のみ呼び出す
+  2. **ページネーション**: `appearances`を返す場合は、limit/offsetで分割取得
+  3. **データベース保存**: 解析結果をDB保存し、必要に応じてクエリで取得
+  4. **サマリーデータのみ返却**: 日別集計、月別集計など、集約済みデータを返す
+- コメントアウトした処理は、上記実装時の参考コードとして活用
+
+**影響範囲**:
+- レスポンスモデル: 3ファイル
+- サービス層: 2ファイル
+- テストコード: 5ファイル
+- ドキュメント: 2ファイル
+
+**期待される効果**:
+- レスポンスサイズ: 約4MB → 約0.05MB（約80倍削減）
+- モバイルブラウザでのセッションストレージ保存が可能に
+- ネットワーク転送速度の向上
+- フロントエンドのメモリ使用量削減
+- ユーザー体験の改善
+
+**テスト計画**:
+- [ ] 全ての単体テストがパスすること
+- [ ] 全ての統合テストがパスすること
+- [ ] E2Eテストで実際のレスポンスサイズを確認
+  - 2025年分（41,539メッセージ）: 50KB以下を目標
+  - 全期間（272,878メッセージ）: 200KB以下を目標
+- [ ] デプロイ後、スマホでの動作確認
+  - セッションストレージへの保存が成功すること
+  - 解析結果の表示が正しく動作すること
+
+**依存**: PR#9（E2Eテストと最終調整）
+
+**完了**: ✅
 
 ---
 

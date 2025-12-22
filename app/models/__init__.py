@@ -10,12 +10,10 @@ from app.models.response import (
     ErrorDetail,
     ErrorResponse,
     MessageAnalysisResult,
-    MessageAppearance,
     MorphologicalAnalysis,
     TopMessage,
     TopWord,
     WordAnalysisResult,
-    WordAppearance,
 )
 
 __all__ = [
@@ -27,8 +25,8 @@ __all__ = [
     "MessageAnalysisResult",
     "TopWord",
     "TopMessage",
-    "WordAppearance",
-    "MessageAppearance",
+    # "WordAppearance",  # Issue#01で削除
+    # "MessageAppearance",  # Issue#01で削除
     "ErrorDetail",
     "ErrorResponse",
 ]

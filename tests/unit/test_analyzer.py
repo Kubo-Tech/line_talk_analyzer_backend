@@ -106,31 +106,6 @@ class TestTalkAnalyzer:
         for i in range(len(top_messages) - 1):
             assert top_messages[i].count >= top_messages[i + 1].count
 
-    def test_analyze_appearances(self, analyzer: TalkAnalyzer, sample_talk_content: str) -> None:
-        """出現情報の記録確認のテスト"""
-        result = analyzer.analyze(sample_talk_content, top_n=10)
-
-        # 単語の出現情報を確認
-        top_words = result.data.morphological_analysis.top_words
-        if len(top_words) > 0:
-            first_word = top_words[0]
-            # 出現回数と出現情報の件数が一致することを確認
-            assert first_word.count == len(first_word.appearances)
-            # 出現情報に必要な情報が含まれていることを確認
-            if len(first_word.appearances) > 0:
-                appearance = first_word.appearances[0]
-                assert isinstance(appearance.date, datetime)
-                assert isinstance(appearance.user, str)
-                assert isinstance(appearance.message, str)
-
-        # メッセージの出現情報を確認
-        top_messages = result.data.full_message_analysis.top_messages
-        if len(top_messages) > 0:
-            first_message = top_messages[0]
-            # 出現情報が記録されていることを確認
-            assert first_message.count == len(first_message.appearances)
-            assert all(app.match_type == "exact" for app in first_message.appearances)
-
     def test_analyze_with_length_filters(
         self, analyzer: TalkAnalyzer, sample_talk_content: str
     ) -> None:
