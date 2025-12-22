@@ -3,24 +3,13 @@
 APIレスポンスのデータモデルを定義する
 """
 
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
-class WordAppearance(BaseModel):
-    """単語の出現情報
-
-    Attributes:
-        date (datetime): 出現日時
-        user (str): ユーザー名
-        message (str): メッセージ本文
-    """
-
-    date: datetime = Field(description="出現日時")
-    user: str = Field(description="ユーザー名")
-    message: str = Field(description="メッセージ本文")
+# NOTE: Issue#01でappearancesフィールドを削除しました（レスポンスサイズ削減: 4MB → 0.05MB）
+# 削除前の実装や将来の拡張方法については、以下を参照してください：
+# - doc/ISSUE/ISSUE01.md: 削除理由と将来の拡張アプローチ
 
 
 class TopWord(BaseModel):
@@ -30,13 +19,11 @@ class TopWord(BaseModel):
         word (str): 単語
         count (int): 出現回数
         part_of_speech (str): 品詞
-        appearances (list[WordAppearance]): 出現情報のリスト
     """
 
     word: str = Field(description="単語")
     count: int = Field(ge=1, description="出現回数")
     part_of_speech: str = Field(description="品詞")
-    appearances: list[WordAppearance] = Field(default_factory=list, description="出現情報のリスト")
 
 
 class MorphologicalAnalysis(BaseModel):
@@ -49,36 +36,16 @@ class MorphologicalAnalysis(BaseModel):
     top_words: list[TopWord] = Field(default_factory=list, description="上位単語のリスト")
 
 
-class MessageAppearance(BaseModel):
-    """メッセージの出現情報
-
-    Attributes:
-        date (datetime): 出現日時
-        user (str): ユーザー名
-        message (str): メッセージ本文
-        match_type (Literal["exact", "partial"]): 一致タイプ
-    """
-
-    date: datetime = Field(description="出現日時")
-    user: str = Field(description="ユーザー名")
-    message: str = Field(description="メッセージ本文")
-    match_type: Literal["exact"] = Field(description="一致タイプ", default="exact")
-
-
 class TopMessage(BaseModel):
     """上位メッセージ情報
 
     Attributes:
         message (str): メッセージ本文
         count (int): 出現回数
-        appearances (list[MessageAppearance]): 出現情報のリスト
     """
 
     message: str = Field(description="メッセージ本文")
     count: int = Field(ge=1, description="出現回数")
-    appearances: list[MessageAppearance] = Field(
-        default_factory=list, description="出現情報のリスト"
-    )
 
 
 class MessageAnalysisResult(BaseModel):

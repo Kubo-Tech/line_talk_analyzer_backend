@@ -176,26 +176,12 @@ Content-Type: multipart/form-data
         {
           "word": "アニメ",
           "count": 450,
-          "part_of_speech": "名詞",
-          "appearances": [
-            {
-              "date": "2025-01-15T10:30:00",
-              "user": "ユーザーA",
-              "message": "アニメ見た"
-            }
-          ]
+          "part_of_speech": "名詞"
         },
         {
           "word": "美味しい",
           "count": 380,
-          "part_of_speech": "形容詞",
-          "appearances": [
-            {
-              "date": "2025-02-20T12:00:00",
-              "user": "ユーザーB",
-              "message": "これ美味しい"
-            }
-          ]
+          "part_of_speech": "形容詞"
         }
       ]
     },
@@ -203,27 +189,11 @@ Content-Type: multipart/form-data
       "top_messages": [
         {
           "message": "おつかれ",
-          "count": 250,
-          "appearances": [
-            {
-              "date": "2025-01-10T18:00:00",
-              "user": "ユーザーA",
-              "message": "おつかれ",
-              "match_type": "exact"
-            }
-          ]
+          "count": 250
         },
         {
           "message": "ありがとう",
-          "count": 180,
-          "appearances": [
-            {
-              "date": "2025-03-05T14:30:00",
-              "user": "ユーザーC",
-              "message": "ありがとう",
-              "match_type": "exact"
-            }
-          ]
+          "count": 180
         }
       ]
     },

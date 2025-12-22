@@ -406,6 +406,10 @@ class TestWordCounter:
         assert "min=10" in str(excinfo.value)
         assert "max=5" in str(excinfo.value)
 
+    # NOTE: Issue#01でappearancesフィールドはレスポンスから削除されましたが、
+    # 内部データ構造(WordCount, MessageCount)のappearancesフィールドは保持されています。
+    # 将来の時系列解析機能実装時に内部データが正しく記録されていることを保証するため、
+    # 以下のテストは引き続き実行します。
     def test_word_appearances_recorded(
         self,
         sample_messages: list[Message],
@@ -414,9 +418,7 @@ class TestWordCounter:
         """単語の出現情報が正しく記録されているかのテスト"""
         counter = WordCounter()
         word_counts = counter.count_morphological_words(sample_messages, sample_words_by_message)
-
         word_count_dict = {wc.base_form: wc for wc in word_counts}
-
         # "今日"が出現したメッセージの確認
         today_appearances = word_count_dict["今日"].appearances
         assert len(today_appearances) == 2
@@ -441,12 +443,9 @@ class TestWordCounter:
                 content="test123",
             ),
         ]
-
         counter = WordCounter()
         message_counts = counter.count_full_messages(messages)
-
         message_count_dict = {mc.message: mc for mc in message_counts}
-
         # "test"の出現情報
         test_appearances = message_count_dict["test"].appearances
         assert len(test_appearances) == 2
