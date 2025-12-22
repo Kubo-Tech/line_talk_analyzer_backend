@@ -251,24 +251,14 @@ class TalkAnalyzer:
         Returns:
             MorphologicalAnalysis: 整形された形態素解析結果
         """
+        # NOTE: Issue#01でappearancesフィールドを削除（詳細はdoc/ISSUE/ISSUE01.md参照）
         top_word_models = []
         for word_count in top_words:
-            # NOTE: Issue#01でappearancesフィールドを削除
-            # 将来の時系列解析機能実装時には、以下のコードを参考にしてください：
-            # appearances = [
-            #     WordAppearance(
-            #         date=msg.datetime,
-            #         user=msg.user,
-            #         message=msg.content,
-            #     )
-            #     for msg in word_count.appearances
-            # ]
             top_word_models.append(
                 TopWord(
                     word=word_count.word,
                     count=word_count.count,
                     part_of_speech=word_count.part_of_speech,
-                    # appearances=appearances,  # Issue#01で削除
                 )
             )
         return MorphologicalAnalysis(top_words=top_word_models)
@@ -282,20 +272,9 @@ class TalkAnalyzer:
         Returns:
             MessageAnalysisResult: 整形されたメッセージ全文解析結果
         """
+        # NOTE: Issue#01でappearancesフィールドを削除（詳細はdoc/ISSUE/ISSUE01.md参照）
         top_message_models = []
         for message_count in top_messages:
-            # NOTE: Issue#01でappearancesフィールドを削除
-            # 将来の時系列解析機能実装時には、以下のコードを参考にしてください：
-            # appearances = [
-            #     MessageAppearance(
-            #         date=msg.datetime,
-            #         user=msg.user,
-            #         message=msg.content,
-            #         match_type="exact",
-            #     )
-            #     for msg in message_count.appearances
-            # ]
-
             top_message_models.append(
                 TopMessage(
                     message=message_count.message,
@@ -358,32 +337,12 @@ class TalkAnalyzer:
             # カウント順でソート
             sorted_words = sorted(word_list, key=lambda x: x[1], reverse=True)[:top_n]
 
-            # レスポンス形式に整形
-            # NOTE: Issue#01でappearancesフィールドを削除
-            # 将来の時系列解析機能実装時には、以下のコードを参考にしてください：
-            # top_words_response = [
-            #     TopWord(
-            #         word=wc.base_form,
-            #         count=user_count,
-            #         part_of_speech=wc.part_of_speech,
-            #         appearances=[
-            #             WordAppearance(
-            #                 date=msg.datetime,
-            #                 user=msg.user,
-            #                 message=msg.content,
-            #             )
-            #             for msg in wc.appearances
-            #             if msg.user == user  # そのユーザーの発言のみ
-            #         ][:5],  # 上位5件の出現情報
-            #     )
-            #     for wc, user_count in sorted_words
-            # ]
+            # レスポンス形式に整形（Issue#01でappearancesは削除）
             top_words_response = [
                 TopWord(
                     word=wc.base_form,
                     count=user_count,
                     part_of_speech=wc.part_of_speech,
-                    # appearancesは削除
                 )
                 for wc, user_count in sorted_words
             ]
@@ -423,31 +382,11 @@ class TalkAnalyzer:
             # カウント順でソート
             sorted_messages = sorted(message_list, key=lambda x: x[1], reverse=True)[:top_n]
 
-            # レスポンス形式に整形
-            # NOTE: Issue#01でappearancesフィールドを削除
-            # 将来の時系列解析機能実装時には、以下のコードを参考にしてください：
-            # top_messages_response = [
-            #     TopMessage(
-            #         message=mc.message,
-            #         count=user_count,
-            #         appearances=[
-            #             MessageAppearance(
-            #                 date=msg.datetime,
-            #                 user=msg.user,
-            #                 message=msg.content,
-            #                 match_type="exact",
-            #             )
-            #             for msg in mc.appearances
-            #             if msg.user == user  # そのユーザーの発言のみ
-            #         ][:5],  # 上位5件の出現情報
-            #     )
-            #     for mc, user_count in sorted_messages
-            # ]
+            # レスポンス形式に整形（Issue#01でappearancesは削除）
             top_messages_response = [
                 TopMessage(
                     message=mc.message,
                     count=user_count,
-                    # appearancesは削除
                 )
                 for mc, user_count in sorted_messages
             ]

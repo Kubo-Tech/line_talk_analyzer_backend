@@ -666,26 +666,26 @@ class Message:
 - **教訓**: フロントエンドに渡すデータは、バックエンド側で適切に処理・集約してから最小限のデータのみを返すべき
 
 **タスク**:
-- [ ] `app/models/response.py`の修正
+- [x] `app/models/response.py`の修正
   - `WordAnalysisResult`から`appearances`フィールドを削除
   - `MessageAnalysisResult`から`appearances`フィールドを削除
   - `UserWordAnalysisResult`から`appearances`フィールドを削除（存在する場合）
   - `UserMessageAnalysisResult`から`appearances`フィールドを削除（存在する場合）
-- [ ] `app/services/word_counter.py`の修正
+- [x] `app/services/word_counter.py`の修正
   - `appearances`収集処理をコメントアウト
   - 将来の時系列解析のために処理ロジックは保持
   - コメントで削除理由と今後の拡張方法を明記
-- [ ] `app/services/analyzer.py`の修正
+- [x] `app/services/analyzer.py`の修正
   - `appearances`に関する処理をコメントアウト
   - レスポンス整形時に`appearances`を含めない
   - 将来の拡張のためのコメントを追加
-- [ ] テストコードの修正
+- [x] テストコードの修正
   - `tests/unit/test_models.py`: `appearances`の検証を削除
   - `tests/unit/test_word_counter.py`: `appearances`のテストをコメントアウト（処理は残すため）
   - `tests/unit/test_analyzer.py`: `appearances`のアサーションを削除
   - `tests/integration/test_api.py`: APIレスポンスの`appearances`チェックを削除
   - `tests/e2e/test_real_data.py`: `appearances`の検証を削除
-- [ ] ドキュメントの更新
+- [x] ドキュメントの更新
   - `README.md`: レスポンス例から`appearances`を削除
   - `doc/SPEC.md`: 
     - セクション3.2.1のレスポンス例を更新
@@ -713,12 +713,12 @@ class Message:
 - ユーザー体験の改善
 
 **テスト計画**:
-- [ ] 全ての単体テストがパスすること
-- [ ] 全ての統合テストがパスすること
-- [ ] E2Eテストで実際のレスポンスサイズを確認
+- [x] 全ての単体テストがパスすること
+- [x] 全ての統合テストがパスすること
+- [x] E2Eテストで実際のレスポンスサイズを確認
   - 2025年分（41,539メッセージ）: 50KB以下を目標
   - 全期間（272,878メッセージ）: 200KB以下を目標
-- [ ] デプロイ後、スマホでの動作確認
+- [x] デプロイ後、スマホでの動作確認
   - セッションストレージへの保存が成功すること
   - 解析結果の表示が正しく動作すること
 

@@ -7,24 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# NOTE: appearancesフィールドは削除されました（Issue#01）
-# レスポンスサイズ削減のため（約4MB → 0.05MB）
-# 将来の時系列解析機能実装時は、以下のアプローチを検討：
-# 1. 専用エンドポイント追加: /api/v1/analyze/timeline
-# 2. ページネーション実装
-# 3. データベースに保存して必要時にクエリ
-# 4. サマリーデータ（日別集計など）のみ返却
-#
-# class WordAppearance(BaseModel):
-#     """単語の出現情報
-#     Attributes:
-#         date (datetime): 出現日時
-#         user (str): ユーザー名
-#         message (str): メッセージ本文
-#     """
-#     date: datetime = Field(description="出現日時")
-#     user: str = Field(description="ユーザー名")
-#     message: str = Field(description="メッセージ本文")
+# NOTE: Issue#01でappearancesフィールドを削除しました（レスポンスサイズ削減: 4MB → 0.05MB）
+# 削除前の実装や将来の拡張方法については、以下を参照してください：
+# - doc/ISSUE/ISSUE01.md: 削除理由と将来の拡張アプローチ
 
 
 class TopWord(BaseModel):
@@ -49,24 +34,6 @@ class MorphologicalAnalysis(BaseModel):
     """
 
     top_words: list[TopWord] = Field(default_factory=list, description="上位単語のリスト")
-
-
-# NOTE: appearancesフィールドは削除されました（Issue#01）
-# レスポンスサイズ削減のため（約4MB → 0.05MB）
-# 将来の時系列解析機能実装時は、専用エンドポイントやDBを活用
-#
-# class MessageAppearance(BaseModel):
-#     """メッセージの出現情報
-#     Attributes:
-#         date (datetime): 出現日時
-#         user (str): ユーザー名
-#         message (str): メッセージ本文
-#         match_type (Literal["exact", "partial"]): 一致タイプ
-#     """
-#     date: datetime = Field(description="出現日時")
-#     user: str = Field(description="ユーザー名")
-#     message: str = Field(description="メッセージ本文")
-#     match_type: Literal["exact"] = Field(description="一致タイプ", default="exact")
 
 
 class TopMessage(BaseModel):
