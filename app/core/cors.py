@@ -13,6 +13,7 @@ def setup_cors(app: FastAPI, settings: Settings) -> None:
     """CORSミドルウェアを設定する
 
     フロントエンドからのクロスオリジンリクエストを許可する
+    Vercelのプレビューデプロイ用に .vercel.app ドメインを許可
 
     Args:
         app (FastAPI): FastAPIアプリケーション
@@ -24,4 +25,5 @@ def setup_cors(app: FastAPI, settings: Settings) -> None:
         allow_credentials=True,
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
+        allow_origin_regex=r"https://.*\.vercel\.app",  # Vercelのすべてのデプロイを許可
     )
