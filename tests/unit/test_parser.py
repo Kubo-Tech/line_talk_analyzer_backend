@@ -56,7 +56,7 @@ class TestLineMessageParser:
             parser = LineMessageParser()
             messages = parser.parse(f)
 
-        # スタンプ、写真、システムメッセージを除外した15件（改行メッセージ4件を含む）
+        # スタンプ、写真、システムメッセージを除外した15件（改行メッセージ2件を含む）
         assert len(messages) == 15
         assert messages[0].content == "おはようございます"
         # 改行メッセージが正しく解析されているか確認
@@ -400,7 +400,7 @@ class TestLineMessageParser:
         assert messages[1].content == "次のメッセージ"
 
     def test_parse_empty_multiline_message(self) -> None:
-        """改行のみのメッセージのテスト（空メッセージとして除外）"""
+        """改行のみのメッセージのテスト（空メッセージとはみなさない）"""
         content = """[LINE] テストのトーク履歴
 保存日時：2024/08/01 00:00
 
