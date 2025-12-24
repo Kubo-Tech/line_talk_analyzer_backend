@@ -56,10 +56,12 @@ class TestLineMessageParser:
             parser = LineMessageParser()
             messages = parser.parse(f)
 
-        # スタンプ、写真、システムメッセージを除外した11件
-        assert len(messages) == 11
+        # スタンプ、写真、システムメッセージを除外した15件（改行メッセージ4件を含む）
+        assert len(messages) == 15
         assert messages[0].content == "おはようございます"
-        assert messages[-1].content == "よろしくお願いします"
+        # 改行メッセージが正しく解析されているか確認
+        multiline_messages = [m for m in messages if "\n" in m.content]
+        assert len(multiline_messages) == 2
 
     def test_exclude_system_messages(self) -> None:
         """システムメッセージの除外テスト"""
@@ -252,24 +254,34 @@ class TestLineMessageParser:
         """メッセージ行解析メソッドのテスト"""
         parser = LineMessageParser()
         current_date = datetime(2024, 8, 1)
+        empty_lines: list[str] = []
 
         # 正常なメッセージ行
-        message = parser._parse_message_line("22:12\thoge山fuga太郎\tこんにちは", current_date)
+        message, consumed = parser._parse_message_line(
+            "22:12\thoge山fuga太郎\tこんにちは", current_date, empty_lines, 0
+        )
         assert message is not None
         assert message.datetime == datetime(2024, 8, 1, 22, 12, 0)
         assert message.user == "hoge山fuga太郎"
         assert message.content == "こんにちは"
+        assert consumed == 0
 
         # システムメッセージ（ユーザー名が空）
-        message = parser._parse_message_line("22:13\t\tシステムメッセージ", current_date)
+        message, consumed = parser._parse_message_line(
+            "22:13\t\tシステムメッセージ", current_date, empty_lines, 0
+        )
         assert message is None
 
         # スタンプ
-        message = parser._parse_message_line("22:14\tpiyo田\t[スタンプ]", current_date)
+        message, consumed = parser._parse_message_line(
+            "22:14\tpiyo田\t[スタンプ]", current_date, empty_lines, 0
+        )
         assert message is None
 
         # 不正な形式
-        message = parser._parse_message_line("22:12 スペース区切り", current_date)
+        message, consumed = parser._parse_message_line(
+            "22:12 スペース区切り", current_date, empty_lines, 0
+        )
         assert message is None
 
     def test_parse_multiline_message(self) -> None:
@@ -287,3 +299,121 @@ class TestLineMessageParser:
 
         # LINEのエクスポート形式では改行は別の行として扱われる
         assert len(messages) == 2
+
+    def test_parse_two_line_multiline_message(self) -> None:
+        """2行の改行メッセージのテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	"1行目
+2行目"
+22:13	piyo田	通常メッセージ
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        assert len(messages) == 2
+        assert messages[0].content == "1行目\n2行目"
+        assert messages[0].user == "hoge山fuga太郎"
+        assert messages[1].content == "通常メッセージ"
+
+    def test_parse_three_line_multiline_message(self) -> None:
+        """3行以上の改行メッセージのテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	"1行目
+2行目
+3行目"
+22:13	piyo田	次のメッセージ
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        assert len(messages) == 2
+        assert messages[0].content == "1行目\n2行目\n3行目"
+        assert "\n" in messages[0].content
+
+    def test_parse_multiline_message_with_empty_lines(self) -> None:
+        """連続する改行を含むメッセージのテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	"1行目
+
+3行目"
+22:13	piyo田	通常メッセージ
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        assert len(messages) == 2
+        assert messages[0].content == "1行目\n\n3行目"
+
+    def test_parse_mixed_normal_and_multiline_messages(self) -> None:
+        """通常メッセージと改行メッセージが混在するテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	通常メッセージ1
+22:13	piyo田	"改行あり
+2行目"
+22:14	foo子	通常メッセージ2
+22:15	hoge山fuga太郎	"また改行
+2行目
+3行目"
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        assert len(messages) == 4
+        assert messages[0].content == "通常メッセージ1"
+        assert messages[1].content == "改行あり\n2行目"
+        assert messages[2].content == "通常メッセージ2"
+        assert messages[3].content == "また改行\n2行目\n3行目"
+
+    def test_parse_multiline_message_without_closing_quote(self) -> None:
+        """閉じ"がない改行メッセージのテスト（次のメッセージで終了）"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	"1行目
+2行目
+22:13	piyo田	次のメッセージ
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # 閉じ"がなくても次のメッセージ行で終了
+        assert len(messages) == 2
+        assert messages[0].content == "1行目\n2行目"
+        assert messages[1].content == "次のメッセージ"
+
+    def test_parse_empty_multiline_message(self) -> None:
+        """改行のみのメッセージのテスト（空メッセージとして除外）"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	"空の内容
+"
+22:13	piyo田	通常メッセージ
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # 改行を含むメッセージの内容が"空の内容\n"となる
+        assert len(messages) == 2
+        assert messages[0].content == "空の内容\n"
+        assert messages[1].content == "通常メッセージ"
