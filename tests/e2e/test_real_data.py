@@ -95,7 +95,7 @@ class TestRealDataAnalysis:
         result = analyzer.analyze(
             content,
             top_n=TOP_N,
-            min_word_length=2,
+            min_word_length=1,
             min_message_length=2,
             start_date=start_date,
             end_date=end_date,

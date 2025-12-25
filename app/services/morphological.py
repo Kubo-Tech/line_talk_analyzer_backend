@@ -219,13 +219,29 @@ class MorphologicalAnalyzer:
     def _filter_by_length(self, word: Word) -> bool:
         """文字数でフィルタリング
 
+        1文字単語の場合、ひらがな・カタカナを除外
+        漢字、アルファベット、絵文字、記号を含む1文字単語は許可
+
         Args:
             word (Word): チェック対象の単語
 
         Returns:
             bool: 条件を満たす場合True
         """
-        return len(word.surface) >= self.min_length
+        word_length = len(word.surface)
+
+        # min_length未満は除外
+        if word_length < self.min_length:
+            return False
+
+        # 1文字の場合、追加チェック
+        if word_length == 1:
+            # ひらがな、カタカナのみの場合は除外
+            if _is_single_kana(word.surface):
+                return False
+            # 上記以外（漢字、アルファベット、絵文字、記号など）は許可
+
+        return True
 
     def _filter_by_pos(self, word: Word) -> bool:
         """品詞でフィルタリング
@@ -338,6 +354,37 @@ class MorphologicalAnalyzer:
                 i += 1
 
         return combined_words
+
+
+def _is_single_kana(text: str) -> bool:
+    """1文字のひらがな、カタカナかどうかを判定
+
+    Args:
+        text (str): 判定対象の文字列
+
+    Returns:
+        bool: 1文字のひらがな、カタカナならTrue
+    """
+    # 1文字でない場合はFalse
+    if len(text) != 1:
+        return False
+
+    char = text[0]
+    code_point = ord(char)
+
+    # ひらがな（U+3040-U+309F）
+    if 0x3040 <= code_point <= 0x309F:
+        return True
+
+    # カタカナ（U+30A0-U+30FF）
+    if 0x30A0 <= code_point <= 0x30FF:
+        return True
+
+    # 半角カタカナ（U+FF65-U+FF9F）
+    if 0xFF65 <= code_point <= 0xFF9F:
+        return True
+
+    return False
 
 
 def _contains_emoji(text: str) -> bool:
