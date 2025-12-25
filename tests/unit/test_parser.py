@@ -417,7 +417,6 @@ class TestLineMessageParser:
         assert len(messages) == 2
         assert messages[0].content == "空の内容"
         assert messages[1].content == "通常メッセージ"
-        assert messages[1].content == "通常メッセージ"
 
     def test_parse_message_with_url(self) -> None:
         """URLを含むメッセージの除外テスト"""
