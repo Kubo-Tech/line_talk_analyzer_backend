@@ -291,16 +291,14 @@ class TestConsecutiveNounCombination:
         assert len([w for w in words if "茶" in w.surface]) == 0
 
     def test_noun_with_sahen_connection(self) -> None:
-        """サ変接続名詞は結合対象外のテスト"""
+        """サ変接続名詞を含む連続名詞の結合テスト"""
         analyzer = MorphologicalAnalyzer(min_length=1)
-        words = analyzer.analyze("勉強する")
+        # サ変接続名詞「勉強」と名詞「会」が連続名詞として結合されることを確認
+        words = analyzer.analyze("勉強会")
 
         surfaces = [w.surface for w in words]
-        # 「勉強」はサ変接続なので、他の名詞と結合されない
-        # （単独で存在する場合は抽出される）
-        if "勉強" in surfaces:
-            # 勉強が抽出された場合、他の名詞と結合していないことを確認
-            assert len(surfaces) == 1 or all(w != "勉強" or w in surfaces for w in surfaces)
+        # 「勉強会」が1語として結合されていることを確認する
+        assert "勉強会" in surfaces
 
     def test_noun_with_adjective_stem(self) -> None:
         """形容動詞語幹は結合対象外のテスト"""
@@ -518,3 +516,73 @@ class TestControlCharacterFiltering:
         for text in test_cases:
             words = analyzer.analyze(text)
             assert len(words) == 0, f"制御文字 {repr(text)} が除外されていません"
+
+
+class TestNounBaseForm:
+    """名詞の基本形処理のテスト
+
+    名詞には活用がないため、基本形ではなく表層形を使用することを確認
+    """
+
+    def test_proper_noun_uses_surface_form(self) -> None:
+        """固有名詞は基本形ではなく表層形を使用することを確認
+
+        neologd辞書は「アオ」を基本形「A-O」に変換するが、表層形を使うべき
+        """
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「アオのハコ」というマンガタイトルを含む文
+        # neologd辞書は「アオ」を基本形「A-O」に変換するが、表層形を使うべき
+        words = analyzer.analyze("アオのハコを読んだ")
+
+        # 「アオ」という固有名詞が抽出されるはず
+        surfaces = [w.surface for w in words]
+        base_forms = [w.base_form for w in words]
+
+        # 表層形に「アオ」が含まれる
+        assert "アオ" in surfaces, f"「アオ」が表層形に含まれていません: {surfaces}"
+
+        # 基本形も「アオ」であるべき（「A-O」ではない）
+        assert "アオ" in base_forms, f"基本形が「アオ」ではありません: {base_forms}"
+        assert "A-O" not in base_forms, f"基本形に「A-O」が含まれています: {base_forms}"
+
+    def test_multiple_proper_nouns(self) -> None:
+        """複数の固有名詞がすべて表層形で処理されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        words = analyzer.analyze("アオとハコは友達です")
+
+        base_forms = [w.base_form for w in words]
+
+        # 両方とも表層形のまま
+        assert "アオ" in base_forms
+        assert "ハコ" in base_forms
+        # 変換された形が含まれていない
+        assert "A-O" not in base_forms
+
+    def test_proper_noun_combined_with_other_words(self) -> None:
+        """固有名詞と他の品詞が混在する文での処理確認"""
+        analyzer = MorphologicalAnalyzer(min_length=2)
+
+        # 「少年ジャンプ＋」で「アオのハコ」を読む
+        words = analyzer.analyze("少年ジャンプ＋でアオのハコを読んだ")
+
+        base_forms = [w.base_form for w in words]
+        surfaces = [w.surface for w in words]
+
+        # 固有名詞は表層形
+        assert "アオ" in surfaces or "アオ" in base_forms
+        assert "A-O" not in base_forms
+
+    def test_general_noun_still_uses_base_form(self) -> None:
+        """一般名詞は引き続き基本形を使用することを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 活用のある一般的な文
+        # ※ただし、名詞自体に活用はないため、基本形=表層形のケースが多い
+        words = analyzer.analyze("本を読む")
+
+        # 「本」は一般名詞なので基本形が使われる
+        hon_words = [w for w in words if w.surface == "本"]
+        assert len(hon_words) > 0
+        assert hon_words[0].base_form == "本"  # 名詞なので基本形=表層形

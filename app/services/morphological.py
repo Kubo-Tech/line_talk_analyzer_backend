@@ -141,6 +141,14 @@ class MorphologicalAnalyzer:
                 if _contains_emoji(node.surface):
                     base_form = node.surface
 
+                # 名詞の場合は基本形ではなく表層形を使用
+                # 理由1: 名詞には活用がないため、基本形を使う意味がない
+                # 理由2: neologd辞書が固有名詞をローマ字等に正規化することがある
+                #       例: 「アオ」-> 「A-O」、「ひろゆき」-> 「西村博之」
+                # 理由3: ユーザーが実際に使った言葉そのままをカウントすべき
+                if pos == "名詞":
+                    base_form = node.surface
+
                 word = Word(
                     surface=node.surface,
                     base_form=base_form,
