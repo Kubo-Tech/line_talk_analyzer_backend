@@ -4,7 +4,6 @@ MeCabを使用してテキストを単語に分解し、品詞情報を付与す
 """
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,40 +29,6 @@ class Word:
     part_of_speech_detail1: str
     part_of_speech_detail2: str
     part_of_speech_detail3: str
-
-
-def _contains_emoji(text: str) -> bool:
-    """テキストに絵文字が含まれるかをチェック
-
-    Args:
-        text (str): チェック対象のテキスト
-
-    Returns:
-        bool: 絵文字が含まれる場合True
-    """
-    # Unicode絵文字の範囲をチェック
-    # 主要な絵文字ブロック:
-    # - U+1F600-U+1F64F: 顔文字
-    # - U+1F300-U+1F5FF: その他の記号と絵文字
-    # - U+1F680-U+1F6FF: 交通と地図記号
-    # - U+2600-U+26FF: その他の記号
-    # - U+2700-U+27BF: 装飾記号
-    # - U+FE00-U+FE0F: バリエーションセレクタ
-    emoji_pattern = re.compile(
-        "["
-        "\U0001f600-\U0001f64f"  # 顔文字
-        "\U0001f300-\U0001f5ff"  # その他の記号と絵文字
-        "\U0001f680-\U0001f6ff"  # 交通と地図記号
-        "\U0001f1e0-\U0001f1ff"  # 国旗
-        "\U00002600-\U000026ff"  # その他の記号
-        "\U00002700-\U000027bf"  # 装飾記号
-        "\U0001f900-\U0001f9ff"  # 補助絵文字
-        "\U0001fa00-\U0001fa6f"  # 拡張絵文字
-        "\U00002300-\U000023ff"  # その他の技術記号
-        "\U0000fe00-\U0000fe0f"  # バリエーションセレクタ
-        "]+"
-    )
-    return bool(emoji_pattern.search(text))
 
 
 class MorphologicalAnalyzer:
@@ -365,3 +330,48 @@ class MorphologicalAnalyzer:
                 i += 1
 
         return combined_words
+
+
+def _contains_emoji(text: str) -> bool:
+    """テキストに絵文字が含まれるかをチェック
+
+    バリエーションセレクタなどの制御文字は絵文字とみなさない
+
+    Args:
+        text (str): チェック対象のテキスト
+
+    Returns:
+        bool: 絵文字が含まれる場合True
+    """
+    import unicodedata
+
+    # テキストが空または空白のみの場合は絵文字ではない
+    if not text or not text.strip():
+        return False
+
+    # 全ての文字をチェック
+    for char in text:
+        category = unicodedata.category(char)
+
+        # 制御文字（Cc, Cf）や非スペーシング記号（Mn）は除外
+        if category in ("Cc", "Cf", "Mn"):
+            continue
+
+        # 絵文字の範囲をチェック
+        code_point = ord(char)
+
+        # 主要な絵文字ブロック
+        if (
+            (0x1F600 <= code_point <= 0x1F64F)  # 顔文字
+            or (0x1F300 <= code_point <= 0x1F5FF)  # その他の記号と絵文字
+            or (0x1F680 <= code_point <= 0x1F6FF)  # 交通と地図記号
+            or (0x1F1E0 <= code_point <= 0x1F1FF)  # 国旗
+            or (0x2600 <= code_point <= 0x26FF)  # その他の記号
+            or (0x2700 <= code_point <= 0x27BF)  # 装飾記号
+            or (0x1F900 <= code_point <= 0x1F9FF)  # 補助絵文字
+            or (0x1FA00 <= code_point <= 0x1FA6F)  # 拡張絵文字
+            or (0x2300 <= code_point <= 0x23FF)  # その他の技術記号
+        ):
+            return True
+
+    return False

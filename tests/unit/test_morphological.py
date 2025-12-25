@@ -414,3 +414,107 @@ class TestEmojiHandling:
         # 絵文字も抽出される
         assert "🎉" in surfaces
         assert "🎉" in base_forms  # 基本形も絵文字のまま
+
+
+class TestControlCharacterFiltering:
+    """制御文字の除外テスト
+
+    バリエーションセレクタなどの制御文字が単語として抽出されないことを確認
+    """
+
+    def test_variation_selector_excluded(self) -> None:
+        """バリエーションセレクタ（U+FE0F）が除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # バリエーションセレクタ単体
+        words = analyzer.analyze("\ufe0f")
+
+        surfaces = [w.surface for w in words]
+
+        # バリエーションセレクタは除外される
+        assert "\ufe0f" not in surfaces
+        assert len(words) == 0
+
+    def test_zero_width_joiner_excluded(self) -> None:
+        """ゼロ幅接合子（U+200D）が除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # ゼロ幅接合子単体
+        words = analyzer.analyze("\u200d")
+
+        surfaces = [w.surface for w in words]
+
+        # ゼロ幅接合子は除外される
+        assert "\u200d" not in surfaces
+        assert len(words) == 0
+
+    def test_full_width_space_excluded(self) -> None:
+        """全角スペース（U+3000）が除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # 全角スペース単体
+        words = analyzer.analyze("\u3000")
+
+        surfaces = [w.surface for w in words]
+
+        # 全角スペースは除外される
+        assert "\u3000" not in surfaces
+        assert len(words) == 0
+
+    def test_multiple_control_characters_excluded(self) -> None:
+        """複数の制御文字が除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # 複数の制御文字を含むテキスト
+        words = analyzer.analyze("\ufe0f\u200d\u3000")
+
+        # 全て除外される
+        assert len(words) == 0
+
+    def test_control_characters_in_sentence_excluded(self) -> None:
+        """文中の制御文字が除外され、通常の単語は抽出されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # 制御文字を含む文（実際のLINEメッセージでは絵文字の後にバリエーションセレクタが付くことがある）
+        words = analyzer.analyze("今日は\u3000良い\ufe0f天気")
+
+        surfaces = [w.surface for w in words]
+        base_forms = [w.base_form for w in words]
+
+        # 制御文字は除外される
+        assert "\u3000" not in surfaces
+        assert "\ufe0f" not in surfaces
+
+        # 通常の単語は抽出される（助詞「は」は除外される）
+        assert "良い" in surfaces or "良い" in base_forms
+        assert "天気" in surfaces or "天気" in base_forms
+
+    def test_emoji_extracted_but_variation_selector_excluded(self) -> None:
+        """絵文字は抽出されるがバリエーションセレクタは除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # 絵文字とバリエーションセレクタを含むテキスト
+        # 実際には絵文字の直後にバリエーションセレクタが来るが、
+        # ここでは分離してテスト
+        words = analyzer.analyze("😭")  # 泣き顔絵文字
+        words_with_vs = analyzer.analyze("😭\ufe0f")  # 泣き顔絵文字 + バリエーションセレクタ
+
+        surfaces1 = [w.surface for w in words]
+        surfaces2 = [w.surface for w in words_with_vs]
+
+        # 絵文字は抽出される
+        assert "😭" in surfaces1
+
+        # バリエーションセレクタ単体は除外される
+        # （絵文字本体は抽出される可能性がある）
+        assert "\ufe0f" not in surfaces2
+
+    def test_only_control_characters_returns_empty(self) -> None:
+        """制御文字のみのテキストは空のリストを返すことを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        test_cases = [
+            "\ufe0f",  # バリエーションセレクタ
+            "\u200d",  # ゼロ幅接合子
+            "\u3000",  # 全角スペース
+            "\ufe0f\u200d",  # 複数の制御文字
+            "\u3000\u3000",  # 複数の全角スペース
+        ]
+
+        for text in test_cases:
+            words = analyzer.analyze(text)
+            assert len(words) == 0, f"制御文字 {repr(text)} が除外されていません"
