@@ -4,6 +4,7 @@ MeCabを使用してテキストを単語に分解し、品詞情報を付与す
 """
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +30,40 @@ class Word:
     part_of_speech_detail1: str
     part_of_speech_detail2: str
     part_of_speech_detail3: str
+
+
+def _contains_emoji(text: str) -> bool:
+    """テキストに絵文字が含まれるかをチェック
+
+    Args:
+        text (str): チェック対象のテキスト
+
+    Returns:
+        bool: 絵文字が含まれる場合True
+    """
+    # Unicode絵文字の範囲をチェック
+    # 主要な絵文字ブロック:
+    # - U+1F600-U+1F64F: 顔文字
+    # - U+1F300-U+1F5FF: その他の記号と絵文字
+    # - U+1F680-U+1F6FF: 交通と地図記号
+    # - U+2600-U+26FF: その他の記号
+    # - U+2700-U+27BF: 装飾記号
+    # - U+FE00-U+FE0F: バリエーションセレクタ
+    emoji_pattern = re.compile(
+        "["
+        "\U0001f600-\U0001f64f"  # 顔文字
+        "\U0001f300-\U0001f5ff"  # その他の記号と絵文字
+        "\U0001f680-\U0001f6ff"  # 交通と地図記号
+        "\U0001f1e0-\U0001f1ff"  # 国旗
+        "\U00002600-\U000026ff"  # その他の記号
+        "\U00002700-\U000027bf"  # 装飾記号
+        "\U0001f900-\U0001f9ff"  # 補助絵文字
+        "\U0001fa00-\U0001fa6f"  # 拡張絵文字
+        "\U00002300-\U000023ff"  # その他の技術記号
+        "\U0000fe00-\U0000fe0f"  # バリエーションセレクタ
+        "]+"
+    )
+    return bool(emoji_pattern.search(text))
 
 
 class MorphologicalAnalyzer:
@@ -135,6 +170,12 @@ class MorphologicalAnalyzer:
                 pos_detail3 = features[3] if len(features) > 3 else ""
                 base_form = features[6] if len(features) > 6 else node.surface
 
+                # 絵文字の場合は基本形ではなく表層形（絵文字そのまま）を使用
+                # neologd辞書は絵文字を日本語テキストに変換するため
+                # 例: 😭 -> 「大泣き」、😂 -> 「嬉し涙」
+                if _contains_emoji(node.surface):
+                    base_form = node.surface
+
                 word = Word(
                     surface=node.surface,
                     base_form=base_form,
@@ -228,6 +269,10 @@ class MorphologicalAnalyzer:
         # 除外品詞リストに含まれている場合は除外
         if pos in self.exclude_parts:
             return False
+
+        # 絵文字を含む記号は特別に許可（表層形に絵文字が含まれる場合）
+        if pos == "記号" and _contains_emoji(word.surface):
+            return True
 
         # デフォルト対象品詞に含まれていない場合は除外
         if pos not in self.DEFAULT_TARGET_POS:

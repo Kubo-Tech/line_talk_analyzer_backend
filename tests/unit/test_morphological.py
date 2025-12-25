@@ -337,3 +337,80 @@ class TestConsecutiveNounCombination:
         assert "犬ちゃん" not in surfaces  # 結合されない
         assert "犬" in surfaces  # 「犬」は抽出される
         assert "ちゃん" not in surfaces  # 接尾辞は除外される
+
+
+class TestEmojiHandling:
+    """絵文字処理のテスト"""
+
+    def test_emoji_not_converted_to_text(self) -> None:
+        """絵文字がテキストに変換されないテスト"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("今日は楽しかった😭")
+
+        # 「😭」は「大泣き」などのテキストに変換されず、絵文字のまま抽出される
+        surfaces = [w.surface for w in words]
+        base_forms = [w.base_form for w in words]
+
+        assert "😭" in surfaces  # 表層形に絵文字が含まれる
+        assert "😭" in base_forms  # 基本形も絵文字のまま
+        assert "大泣き" not in base_forms  # テキストに変換されない
+        assert "泣き顔" not in base_forms  # テキストに変換されない
+
+    def test_multiple_emojis(self) -> None:
+        """複数の絵文字が正しく抽出されるテスト"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("😭😂😊")
+
+        surfaces = [w.surface for w in words]
+
+        # 各絵文字が個別に抽出される
+        assert "😭" in surfaces
+        assert "😂" in surfaces
+        assert "😊" in surfaces
+
+    def test_emoji_vs_text(self) -> None:
+        """絵文字とテキストが区別されるテスト"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 絵文字のケース
+        words_emoji = analyzer.analyze("😭")
+        emoji_base_forms = [w.base_form for w in words_emoji]
+
+        # 「泣き顔」テキストのケース
+        words_text = analyzer.analyze("泣き顔")
+        text_base_forms = [w.base_form for w in words_text]
+
+        # 絵文字は「😭」として、テキストは「泣き顔」として別々にカウントされる
+        assert "😭" in emoji_base_forms
+        assert "泣き顔" in text_base_forms
+        assert "😭" not in text_base_forms
+        assert "泣き顔" not in emoji_base_forms
+
+    def test_emoji_with_variation_selector(self) -> None:
+        """バリエーションセレクタ付き絵文字のテスト"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # 一部の絵文字はバリエーションセレクタ（U+FE0F）を含む
+        words = analyzer.analyze("❤️")  # ハートマーク（バリエーションセレクタ付き）
+
+        if words:  # 絵文字が抽出される場合
+            surfaces = [w.surface for w in words]
+            base_forms = [w.base_form for w in words]
+            # 基本形も表層形と同じになる
+            assert any("❤" in s for s in surfaces)
+            assert any("❤" in b for b in base_forms)
+
+    def test_emoji_in_sentence(self) -> None:
+        """文中の絵文字が正しく抽出されるテスト"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("今日のライブ最高だった🎉✨")
+
+        surfaces = [w.surface for w in words]
+        base_forms = [w.base_form for w in words]
+
+        # 通常の単語も抽出される
+        assert any("ライブ" in s for s in surfaces)
+        assert any("最高" in s for s in surfaces)
+
+        # 絵文字も抽出される
+        assert "🎉" in surfaces
+        assert "🎉" in base_forms  # 基本形も絵文字のまま
