@@ -153,6 +153,94 @@ https://animestore.docomo.ne.jp/animestore/cd?partId=20230034&ref=line」
 出力: 「機動戦士ガンダム 第34話を視聴しました！#dアニメストア」
 ```
 
+---
+
+### 3. MeCab辞書の明示化による記号除外の修正
+
+#### 3.1 問題発見
+
+URL除外後も記号「！#」が流行語として抽出される問題が発生
+
+#### 3.2 根本原因の調査
+
+比較検証を実施：
+
+```bash
+# デフォルト辞書
+echo "機動戦士ガンダム...！#dアニメストア" | mecab
+！#    名詞,サ変接続,*,*,*,*,！#,！#,！#  ← 誤認識
+
+# neologd辞書
+echo "機動戦士ガンダム...！#dアニメストア" | mecab -d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd
+！#    記号,一般,*,*,*,*,！#,！#,！#  ← 正しい認識
+```
+
+**根本原因**: 
+- `MorphologicalAnalyzer`がデフォルト辞書を使用していた
+- デフォルト辞書は記号を「名詞-サ変接続」と誤認識
+- サ変接続は連続名詞結合の対象に含まれていたため、記号が他の単語と結合
+- 結果として「！#dアニメストア」のような不自然な単語が生成
+
+#### 3.3 解決策
+
+neologd辞書の明示的指定：
+
+```python
+# 変更前（問題あり）
+def __init__(self, ...args) -> None:
+    self.tagger = MeCab.Tagger()  # デフォルト辞書を使用
+
+# 変更後（正しい）
+def __init__(self, ...args) -> None:
+    self.tagger = MeCab.Tagger(
+        "-d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd"
+    )
+```
+
+#### 3.4 効果
+
+1. **記号が正しく認識される**
+   - 記号が「記号-一般」として認識される
+   - DEFAULT_TARGET_POS（名詞、形容詞、感動詞のみ）で自動的に除外される
+   - 追加の記号除外処理が不要に
+
+2. **辞書の差異による影響**
+
+| 要素 | デフォルト辞書 | neologd辞書 |
+|------|---------------|-------------|
+| 「！#」 | 名詞-サ変接続（誤） | 記号-一般（正） |
+| 「機動戦士ガンダム」 | 分割 | 1単語として認識 |
+| 「今日の天気」 | 分割 | 固有名詞として認識 |
+| 「12時」 | 分割 | 固有名詞として認識 |
+| 「田中さん」 | 分割 | 固有名詞として認識 |
+
+#### 3.5 影響を受けたテスト
+
+neologd辞書は強力な固有名詞認識機能を持つため、3件のテストケースを修正：
+
+| テスト | 変更前 | 変更後 | 理由 |
+|--------|--------|--------|------|
+| `test_combined_noun_with_stopwords` | 「今日の天気」 | 「今日は晴れ」 | 「今日の天気」が固有名詞として認識される |
+| `test_exclude_number_noun` | 「12時に集合」 | 「3個買った」 | 「12時」が固有名詞として認識される |
+| `test_exclude_suffix_noun` | 「猫ちゃん」 | 「犬ちゃん」 | 「猫ちゃん」が固有名詞として認識される |
+
+修正例:
+```python
+# 修正後: 「犬ちゃん」は「犬」（一般名詞）+「ちゃん」（接尾辞）に分割される
+def test_exclude_suffix_noun(self) -> None:
+    analyzer = MorphologicalAnalyzer(min_length=1)
+    words = analyzer.analyze("犬ちゃん")
+    surfaces = [w.surface for w in words]
+    
+    assert "犬ちゃん" not in surfaces  # 結合されない
+    assert "犬" in surfaces            # 「犬」は抽出される
+    assert "ちゃん" not in surfaces    # 接尾辞は除外される
+```
+
+---
+
+---
+
 ## 修正対象ファイル
 
 ### 実装ファイル

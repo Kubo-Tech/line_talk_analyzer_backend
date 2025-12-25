@@ -86,7 +86,10 @@ class MorphologicalAnalyzer:
             RuntimeError: MeCabの初期化に失敗した場合
         """
         try:
-            self.tagger = MeCab.Tagger()
+            # neologd辞書を使用（新語・固有名詞の認識精度向上）
+            self.tagger = MeCab.Tagger(
+                "-d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd"
+            )
         except Exception as e:
             raise RuntimeError(f"MeCabの初期化に失敗しました: {e}") from e
 
