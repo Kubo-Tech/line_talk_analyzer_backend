@@ -48,6 +48,9 @@ class LineMessageParser:
         r"がメンバーを削除しました。$",
     ]
 
+    # URLパターン（http://またはhttps://で始まるもの）
+    URL_PATTERN = re.compile(r"https?://\S+")
+
     def __init__(self) -> None:
         """パーサーの初期化"""
         self._meta_pattern = re.compile("|".join(self.META_PATTERNS))
@@ -183,6 +186,9 @@ class LineMessageParser:
         else:
             lines_consumed = 0
 
+        # URLやハッシュタグ、パラメータを除外
+        content = self._remove_urls(content)
+
         # メッセージが空になった場合は除外（改行のみのメッセージなど）
         if not content:
             return None, lines_consumed
@@ -279,3 +285,32 @@ class LineMessageParser:
         full_content = "\n".join(content_lines)
 
         return full_content, lines_consumed
+
+    def _remove_urls(self, text: str) -> str:
+        """テキストからURLを除外
+
+        Args:
+            text (str): 元のテキスト
+
+        Returns:
+            str: URLを除外したテキスト
+        """
+        # URLを空文字列に置換
+        cleaned_text = self.URL_PATTERN.sub("", text)
+
+        # 各行ごとに処理（改行を保持）
+        lines = cleaned_text.split("\n")
+        cleaned_lines = []
+
+        for line in lines:
+            # 各行内の連続する空白（タブ、半角スペース）を1つにまとめる
+            cleaned_line = re.sub(r"[ \t]+", " ", line)
+            # 前後の空白を削除
+            cleaned_line = cleaned_line.strip()
+            cleaned_lines.append(cleaned_line)
+
+        # 改行で再結合
+        result = "\n".join(cleaned_lines)
+
+        # 全体の前後の空白（改行も含む）を削除
+        return result.strip()

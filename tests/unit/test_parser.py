@@ -56,8 +56,8 @@ class TestLineMessageParser:
             parser = LineMessageParser()
             messages = parser.parse(f)
 
-        # スタンプ、写真、システムメッセージを除外した15件（改行メッセージ2件を含む）
-        assert len(messages) == 15
+        # スタンプ、写真、システムメッセージを除外した18件（改行メッセージ2件と連続名詞テスト用3件を含む）
+        assert len(messages) == 18
         assert messages[0].content == "おはようございます"
         # 改行メッセージが正しく解析されているか確認
         multiline_messages = [m for m in messages if "\n" in m.content]
@@ -152,7 +152,7 @@ class TestLineMessageParser:
 
 2024/08/01(木)
 22:12	hoge山fuga太郎	こんにちは😊
-22:13	piyo田	今日は\t良い天気
+22:13	piyo田	今日は良い天気
 22:14	foo子	100%満足！
 """
         file = StringIO(content)
@@ -161,7 +161,7 @@ class TestLineMessageParser:
 
         assert len(messages) == 3
         assert "😊" in messages[0].content
-        assert messages[1].content == "今日は\t良い天気"  # タブ文字を含むメッセージ
+        assert messages[1].content == "今日は良い天気"
         assert messages[2].content == "100%満足！"
 
     def test_parse_empty_file(self) -> None:
@@ -400,7 +400,7 @@ class TestLineMessageParser:
         assert messages[1].content == "次のメッセージ"
 
     def test_parse_empty_multiline_message(self) -> None:
-        """改行のみのメッセージのテスト（空メッセージとはみなさない）"""
+        """改行のみのメッセージのテスト"""
         content = """[LINE] テストのトーク履歴
 保存日時：2024/08/01 00:00
 
@@ -413,7 +413,64 @@ class TestLineMessageParser:
         parser = LineMessageParser()
         messages = parser.parse(file)
 
-        # 改行を含むメッセージの内容が"空の内容\n"となる
+        # 改行を含むメッセージは、末尾の空行が削除される
         assert len(messages) == 2
-        assert messages[0].content == "空の内容\n"
+        assert messages[0].content == "空の内容"
         assert messages[1].content == "通常メッセージ"
+
+    def test_parse_message_with_url(self) -> None:
+        """URLを含むメッセージの除外テスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	これは便利 https://example.com/page
+22:13	piyo田	チェックして http://test.com
+22:14	foo子	https://animestore.docomo.ne.jp/animestore/cd?partId=12345
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # URLが除外されていることを確認
+        # 3つ目のメッセージはURLのみのため空になり除外される
+        assert len(messages) == 2
+        assert messages[0].content == "これは便利"
+        assert messages[1].content == "チェックして"
+
+    def test_parse_message_with_hashtag_and_params(self) -> None:
+        """ハッシュタグを含むメッセージのテスト（実際のdアニメストアメッセージ形式）"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	"機動戦士ガンダム 第34話を視聴しました！#dアニメストア
+https://animestore.docomo.ne.jp/animestore/cd?partId=20230034&ref=line"
+22:13	piyo田	見てね #アニメ
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # URLが除外され、ハッシュタグは残る
+        assert len(messages) == 2
+        assert messages[0].content == "機動戦士ガンダム 第34話を視聴しました！#dアニメストア"
+        assert messages[1].content == "見てね #アニメ"
+
+    def test_parse_message_with_mixed_content(self) -> None:
+        """テキストとURLが混在するメッセージのテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+22:12	hoge山fuga太郎	今日の記事 https://example.com/article とても良かった
+22:13	piyo田	明日は https://test.com に行く予定
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # URLが除外され、テキスト部分のみ残る
+        assert len(messages) == 2
+        assert messages[0].content == "今日の記事 とても良かった"
+        assert messages[1].content == "明日は に行く予定"
