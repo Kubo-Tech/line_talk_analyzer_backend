@@ -586,3 +586,242 @@ class TestNounBaseForm:
         hon_words = [w for w in words if w.surface == "本"]
         assert len(hon_words) > 0
         assert hon_words[0].base_form == "本"  # 名詞なので基本形=表層形
+
+
+class TestIsSingleKana:
+    """_is_single_kana()関数のテスト"""
+
+    def test_hiragana_single_character_a(self) -> None:
+        """ひらがな1文字「あ」のテスト"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("あ") is True
+
+    def test_hiragana_single_character_n(self) -> None:
+        """ひらがな1文字「ん」のテスト"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("ん") is True
+
+    def test_katakana_single_character_a(self) -> None:
+        """カタカナ1文字「ア」のテスト"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("ア") is True
+
+    def test_katakana_single_character_n(self) -> None:
+        """カタカナ1文字「ン」のテスト"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("ン") is True
+
+    def test_katakana_single_character_prolonged(self) -> None:
+        """カタカナ1文字「ー」のテスト"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("ー") is True
+
+    def test_half_width_katakana(self) -> None:
+        """半角カタカナ1文字「ｱ」のテスト"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("ｱ") is True
+
+    def test_kanji_single_character(self) -> None:
+        """漢字1文字「草」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("草") is False
+
+    def test_kanji_single_character_ai(self) -> None:
+        """漢字1文字「愛」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("愛") is False
+
+    def test_alphabet_lowercase(self) -> None:
+        """アルファベット小文字1文字「w」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("w") is False
+
+    def test_alphabet_uppercase(self) -> None:
+        """アルファベット大文字1文字「W」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("W") is False
+
+    def test_emoji(self) -> None:
+        """絵文字1文字「😭」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("😭") is False
+
+    def test_symbol(self) -> None:
+        """記号1文字「！」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("！") is False
+
+    def test_two_characters(self) -> None:
+        """2文字以上「あい」は除外されない"""
+        from app.services.morphological import _is_single_kana
+
+        assert _is_single_kana("あい") is False
+
+
+class TestFilterByLengthWithKana:
+    """_filter_by_length()メソッドの1文字カナ除外機能のテスト"""
+
+    def test_filter_single_hiragana(self) -> None:
+        """1文字ひらがなが除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="あ",
+            base_form="あ",
+            part_of_speech="感動詞",
+            part_of_speech_detail1="*",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is False
+
+    def test_filter_single_katakana(self) -> None:
+        """1文字カタカナが除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="ア",
+            base_form="ア",
+            part_of_speech="感動詞",
+            part_of_speech_detail1="*",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is False
+
+    def test_filter_single_half_width_katakana(self) -> None:
+        """1文字半角カタカナが除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="ｱ",
+            base_form="ｱ",
+            part_of_speech="感動詞",
+            part_of_speech_detail1="*",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is False
+
+    def test_allow_single_kanji(self) -> None:
+        """1文字漢字が許可されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="草",
+            base_form="草",
+            part_of_speech="名詞",
+            part_of_speech_detail1="一般",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is True
+
+    def test_allow_single_alphabet_lowercase(self) -> None:
+        """1文字アルファベット小文字が許可されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="w",
+            base_form="w",
+            part_of_speech="名詞",
+            part_of_speech_detail1="一般",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is True
+
+    def test_allow_single_alphabet_uppercase(self) -> None:
+        """1文字アルファベット大文字が許可されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="W",
+            base_form="W",
+            part_of_speech="名詞",
+            part_of_speech_detail1="固有名詞",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is True
+
+    def test_allow_single_emoji(self) -> None:
+        """1文字絵文字が許可されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="😭",
+            base_form="😭",
+            part_of_speech="記号",
+            part_of_speech_detail1="一般",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is True
+
+    def test_allow_single_symbol(self) -> None:
+        """1文字記号が許可されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="！",
+            base_form="！",
+            part_of_speech="記号",
+            part_of_speech_detail1="一般",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is True
+
+    def test_allow_two_or_more_characters(self) -> None:
+        """2文字以上が許可されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        word = Word(
+            surface="あい",
+            base_form="あい",
+            part_of_speech="名詞",
+            part_of_speech_detail1="一般",
+            part_of_speech_detail2="*",
+            part_of_speech_detail3="*",
+        )
+        assert analyzer._filter_by_length(word) is True
+
+
+class TestAnalyzeWithKanaFiltering:
+    """analyze()メソッドの1文字カナ除外統合テスト"""
+
+    def test_analyze_mixed_single_characters(self) -> None:
+        """1文字単語混在テキストの解析"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「草w」というテキスト（漢字1文字、アルファベット1文字）
+        # ひらがな・カタカナ1文字は除外されるべき
+        words = analyzer.analyze("草w")
+
+        surfaces = [w.surface for w in words]
+
+        # 漢字1文字「草」とアルファベット1文字「w」は残る
+        assert "草" in surfaces
+        assert "w" in surfaces or "W" in surfaces  # MeCabの解析結果による
+
+    def test_analyze_exclude_single_kana(self) -> None:
+        """ひらがな1文字が除外されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「草」「あ」「w」が含まれる文
+        # 実際のMeCab解析では「あ」は感動詞として抽出される可能性がある
+        words = analyzer.analyze("草あw")
+
+        surfaces = [w.surface for w in words]
+
+        # 「草」と「w」は含まれ、「あ」は除外される
+        assert "草" in surfaces
+        # 「あ」は除外される（ひらがな1文字）
+        assert "あ" not in surfaces
+        # 「w」はアルファベットなので許可される
+        # ただし、MeCabの解析結果によっては「w」が記号扱いされる可能性もある
+        # そのため、「w」の存在確認はスキップ
