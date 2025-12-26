@@ -825,3 +825,75 @@ class TestAnalyzeWithKanaFiltering:
         # 「w」はアルファベットなので許可される
         # ただし、MeCabの解析結果によっては「w」が記号扱いされる可能性もある
         # そのため、「w」の存在確認はスキップ
+
+
+class TestKeiyoudoushiGokanCombination:
+    """形容動詞語幹の結合テスト（Issue#05対応）"""
+
+    def test_keiyoudoushi_gokan_combined_in_person_name(self) -> None:
+        """人名の一部として形容動詞語幹が結合されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「優稀」という人名（「稀」は形容動詞語幹）
+        words = analyzer.analyze("優稀さん")
+
+        surfaces = [w.surface for w in words]
+
+        # 「晃」と「稀」が結合されて「優稀」になる
+        assert "優稀" in surfaces
+        # 分離されていない
+        assert "晃" not in surfaces
+        assert "稀" not in surfaces
+
+    def test_keiyoudoushi_gokan_combined_in_full_name(self) -> None:
+        """フルネームで形容動詞語幹が結合されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「山田優稀」という氏名
+        words = analyzer.analyze("山田優稀")
+
+        surfaces = [w.surface for w in words]
+
+        # 全て結合される
+        assert "山田優稀" in surfaces
+
+    def test_keiyoudoushi_gokan_not_combined_with_na(self) -> None:
+        """形容動詞として使われる場合（「な」が後続）は結合されないことを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「綺麗な花」（「綺麗」は形容動詞語幹、「な」が後続）
+        words = analyzer.analyze("綺麗な花")
+
+        surfaces = [w.surface for w in words]
+
+        # 「綺麗」と「花」は結合されない
+        assert "綺麗" in surfaces
+        assert "花" in surfaces
+        assert "綺麗花" not in surfaces
+
+    def test_multiple_keiyoudoushi_gokan_not_combined_with_na(self) -> None:
+        """複数の形容動詞語幹が「な」で区切られる場合に結合されないことを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「元気な人」（「元気」は形容動詞語幹）
+        words = analyzer.analyze("元気な人")
+
+        surfaces = [w.surface for w in words]
+
+        # 「元気」と「人」は結合されない
+        assert "元気" in surfaces
+        # 「人」はストップワードでなければ抽出される
+        # 結合されていない
+        assert "元気人" not in surfaces
+
+    def test_keiyoudoushi_gokan_combined_without_particle(self) -> None:
+        """助詞がない場合に形容動詞語幹が結合されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「静か部屋」（助詞なし、非現実的だが動作確認）
+        words = analyzer.analyze("静か部屋")
+
+        surfaces = [w.surface for w in words]
+
+        # 助詞がないため結合される
+        assert "静か部屋" in surfaces
