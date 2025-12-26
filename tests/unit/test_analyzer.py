@@ -46,7 +46,9 @@ class TestTalkAnalyzer:
         """
         return TalkAnalyzer()
 
-    def test_analyze_basic(self, analyzer: TalkAnalyzer, sample_talk_content: str) -> None:
+    def test_analyze_basic(
+        self, analyzer: TalkAnalyzer, sample_talk_content: str
+    ) -> None:
         """基本的な解析処理のテスト"""
         result = analyzer.analyze(sample_talk_content, top_n=10)
 
@@ -67,7 +69,9 @@ class TestTalkAnalyzer:
         # メッセージ全文解析結果の確認
         assert len(result.data.full_message_analysis.top_messages) > 0
 
-    def test_analyze_with_textio(self, analyzer: TalkAnalyzer, sample_talk_content: str) -> None:
+    def test_analyze_with_textio(
+        self, analyzer: TalkAnalyzer, sample_talk_content: str
+    ) -> None:
         """TextIOを使った解析処理のテスト"""
         file = StringIO(sample_talk_content)
         result = analyzer.analyze(file, top_n=10)
@@ -75,7 +79,9 @@ class TestTalkAnalyzer:
         assert result.status == "success"
         assert result.data.total_messages == 8
 
-    def test_analyze_top_n(self, analyzer: TalkAnalyzer, sample_talk_content: str) -> None:
+    def test_analyze_top_n(
+        self, analyzer: TalkAnalyzer, sample_talk_content: str
+    ) -> None:
         """上位N件の取得確認のテスト"""
         # top_n=3を指定
         result = analyzer.analyze(sample_talk_content, top_n=3)
@@ -86,7 +92,9 @@ class TestTalkAnalyzer:
         # メッセージ全文解析結果は最大3件
         assert len(result.data.full_message_analysis.top_messages) <= 3
 
-    def test_analyze_word_sorting(self, analyzer: TalkAnalyzer, sample_talk_content: str) -> None:
+    def test_analyze_word_sorting(
+        self, analyzer: TalkAnalyzer, sample_talk_content: str
+    ) -> None:
         """単語のソート順確認のテスト"""
         result = analyzer.analyze(sample_talk_content, top_n=10)
 
@@ -308,7 +316,9 @@ class TestTalkAnalyzer:
 10:00	ユーザーA	テスト
 """
         # 開始日が終了日より後の場合はエラー
-        with pytest.raises(ValueError, match="start_dateはend_date以前である必要があります"):
+        with pytest.raises(
+            ValueError, match="start_dateはend_date以前である必要があります"
+        ):
             analyzer.analyze(
                 content,
                 start_date=datetime(2024, 1, 10),
@@ -355,7 +365,9 @@ class TestTalkAnalyzer:
         assert len(filtered) == 2  # 5日と10日
 
         # 終了日のみを指定
-        filtered = analyzer._filter_by_period(messages, None, datetime(2024, 1, 5, 23, 59, 59))
+        filtered = analyzer._filter_by_period(
+            messages, None, datetime(2024, 1, 5, 23, 59, 59)
+        )
         assert len(filtered) == 2  # 1日と5日
 
         # どちらも指定しない
@@ -511,3 +523,99 @@ class TestTalkAnalyzer:
         today = datetime.now().strftime("%Y-%m-%d")
         assert result.data.analysis_period.start_date == today
         assert result.data.analysis_period.end_date == today
+
+    def test_analyze_with_min_word_count(self, analyzer: TalkAnalyzer) -> None:
+        """最小単語出現回数フィルタのテスト"""
+        content = """[LINE] 単語出現回数テスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	りんごとバナナとみかん
+10:01	ユーザーB	りんごとバナナ
+10:02	ユーザーC	りんご
+"""
+        # min_word_count=2 の場合、2回以上出現する単語のみ取得
+        result = analyzer.analyze(content, top_n=10, min_word_count=2)
+
+        assert result.status == "success"
+
+        # 「りんご」(3回)、「バナナ」(2回) は含まれる
+        # 「みかん」(1回) は含まれない
+        words = [w.word for w in result.data.morphological_analysis.top_words]
+        assert "りんご" in words
+        assert "バナナ" in words
+        assert "みかん" not in words
+
+    def test_analyze_with_min_message_count(self, analyzer: TalkAnalyzer) -> None:
+        """最小メッセージ出現回数フィルタのテスト"""
+        content = """[LINE] メッセージ出現回数テスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	おはよう
+10:01	ユーザーB	おはよう
+10:02	ユーザーC	おはよう
+10:03	ユーザーA	こんにちは
+10:04	ユーザーB	こんにちは
+10:05	ユーザーC	さようなら
+"""
+        # min_message_count=2 の場合、2回以上出現するメッセージのみ取得
+        result = analyzer.analyze(content, top_n=10, min_message_count=2)
+
+        assert result.status == "success"
+
+        # 「おはよう」(3回)、「こんにちは」(2回) は含まれる
+        # 「さようなら」(1回) は含まれない
+        messages = [m.message for m in result.data.full_message_analysis.top_messages]
+        assert "おはよう" in messages
+        assert "こんにちは" in messages
+        assert "さようなら" not in messages
+
+    def test_analyze_with_min_count_default(self, analyzer: TalkAnalyzer) -> None:
+        """最小出現回数のデフォルト値（2）のテスト"""
+        content = """[LINE] デフォルト値テスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	一回のみ
+10:01	ユーザーB	二回目
+10:02	ユーザーC	二回目
+"""
+        # min_word_count, min_message_countを指定しない（デフォルト=2）
+        result = analyzer.analyze(content, top_n=10)
+
+        assert result.status == "success"
+
+        # 1回のみの単語・メッセージは除外される
+        words = [w.word for w in result.data.morphological_analysis.top_words]
+        messages = [m.message for m in result.data.full_message_analysis.top_messages]
+
+        # 「一回」は1回のみなので含まれない
+        assert "一回" not in words
+
+        # 「二回目」は2回なので含まれる
+        assert "二回目" in messages
+        # 「一回のみ」は1回なので含まれない
+        assert "一回のみ" not in messages
+
+    def test_analyze_min_count_validation(self, analyzer: TalkAnalyzer) -> None:
+        """最小出現回数のバリデーションテスト"""
+        content = """[LINE] バリデーションテスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	テスト
+"""
+        # min_word_count が 0 以下の場合はエラー
+        with pytest.raises(ValueError, match="min_word_count.*1以上"):
+            analyzer.analyze(content, min_word_count=0)
+
+        with pytest.raises(ValueError, match="min_word_count.*1以上"):
+            analyzer.analyze(content, min_word_count=-1)
+
+        # min_message_count が 0 以下の場合はエラー
+        with pytest.raises(ValueError, match="min_message_count.*1以上"):
+            analyzer.analyze(content, min_message_count=0)
+
+        with pytest.raises(ValueError, match="min_message_count.*1以上"):
+            analyzer.analyze(content, min_message_count=-1)
