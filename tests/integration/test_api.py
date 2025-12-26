@@ -87,7 +87,13 @@ class TestAnalyzeEndpoint:
         response = client.post(
             "/api/v1/analyze",
             files={"file": ("test.txt", sample_talk_file, "text/plain")},
-            data={"top_n": "10", "min_word_length": "2", "min_message_length": "3"},
+            data={
+                "top_n": "10",
+                "min_word_length": "2",
+                "min_message_length": "3",
+                "min_word_count": "3",
+                "min_message_count": "2",
+            },
         )
 
         assert response.status_code == 200
@@ -243,6 +249,44 @@ class TestAnalyzeEndpoint:
             # セキュリティのため、内部エラーの詳細は露出されない
             assert "不正なトーク履歴形式" not in response.json()["detail"]
 
+    def test_analyze_with_min_count_filters(self) -> None:
+        """最小出現回数フィルタのテスト"""
+        content = """[LINE] 最小出現回数テスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	りんごとバナナとみかん
+10:01	ユーザーB	りんごとバナナ
+10:02	ユーザーC	りんご
+10:03	ユーザーA	おはよう
+10:04	ユーザーB	おはよう
+10:05	ユーザーC	こんにちは
+"""
+        file = BytesIO(content.encode("utf-8"))
+
+        response = client.post(
+            "/api/v1/analyze",
+            files={"file": ("test.txt", file, "text/plain")},
+            data={"min_word_count": "2", "min_message_count": "2"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+
+        # 2回以上出現する単語のみ含まれる
+        words = [w["word"] for w in data["data"]["morphological_analysis"]["top_words"]]
+        assert "りんご" in words  # 3回出現
+        assert "バナナ" in words  # 2回出現
+        # 「みかん」は1回のみなので含まれない
+
+        # 2回以上出現するメッセージのみ含まれる
+        messages = [
+            m["message"] for m in data["data"]["full_message_analysis"]["top_messages"]
+        ]
+        assert "おはよう" in messages  # 2回出現
+        assert "こんにちは" not in messages  # 1回のみ
+
 
 class TestCORS:
     """CORS設定のテスト"""
@@ -250,7 +294,9 @@ class TestCORS:
     def test_cors_headers(self) -> None:
         """CORSヘッダーが設定されていることを確認"""
         # 実際のリクエストでCORSヘッダーをチェック
-        response = client.get("/api/v1/health", headers={"Origin": "http://localhost:3000"})
+        response = client.get(
+            "/api/v1/health", headers={"Origin": "http://localhost:3000"}
+        )
 
         # CORSミドルウェアが正しく設定されていればaccess-control-allow-originヘッダーが返される
         assert response.status_code == 200

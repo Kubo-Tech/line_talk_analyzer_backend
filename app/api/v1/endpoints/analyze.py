@@ -39,6 +39,8 @@ async def analyze_talk(
     max_word_length: int | None = Form(default=None, description="最大単語長"),
     min_message_length: int = Form(default=None, description="最小メッセージ長"),
     max_message_length: int | None = Form(default=None, description="最大メッセージ長"),
+    min_word_count: int = Form(default=None, description="最小単語出現回数"),
+    min_message_count: int = Form(default=None, description="最小メッセージ出現回数"),
     start_date: str | None = Form(
         default=None, description="解析開始日時（YYYY-MM-DD HH:MM:SS形式）"
     ),
@@ -58,6 +60,8 @@ async def analyze_talk(
         max_word_length (int | None): 最大単語長（デフォルト: None）
         min_message_length (int): 最小メッセージ長（デフォルト: 設定値）
         max_message_length (int | None): 最大メッセージ長（デフォルト: None）
+        min_word_count (int): 最小単語出現回数（デフォルト: 2）
+        min_message_count (int): 最小メッセージ出現回数（デフォルト: 2）
         start_date (str | None): 解析開始日時
         end_date (str | None): 解析終了日時
 
@@ -71,10 +75,16 @@ async def analyze_talk(
 
     # デフォルト値を設定（Noneの場合のみ）
     top_n = top_n if top_n is not None else settings.DEFAULT_TOP_N
-    min_word_length = min_word_length if min_word_length is not None else settings.MIN_WORD_LENGTH
-    min_message_length = (
-        min_message_length if min_message_length is not None else settings.MIN_MESSAGE_LENGTH
+    min_word_length = (
+        min_word_length if min_word_length is not None else settings.MIN_WORD_LENGTH
     )
+    min_message_length = (
+        min_message_length
+        if min_message_length is not None
+        else settings.MIN_MESSAGE_LENGTH
+    )
+    min_word_count = min_word_count if min_word_count is not None else 2
+    min_message_count = min_message_count if min_message_count is not None else 2
 
     # ファイルの検証
     if not file.filename:
@@ -144,20 +154,26 @@ async def analyze_talk(
             max_word_length=max_word_length,
             min_message_length=min_message_length,
             max_message_length=max_message_length,
+            min_word_count=min_word_count,
+            min_message_count=min_message_count,
             start_date=start_datetime,
             end_date=end_datetime,
         )
         return result
     except ValueError as e:
         # ユーザー入力エラー: ログに記録し、一般的なメッセージを返す
-        logger.warning("解析処理でバリデーションエラーが発生しました: %s", str(e), exc_info=True)
+        logger.warning(
+            "解析処理でバリデーションエラーが発生しました: %s", str(e), exc_info=True
+        )
         raise HTTPException(
             status_code=400,
             detail="トーク履歴の形式が正しくありません。LINEからエクスポートされた.txtファイルを使用してください。",
         )
     except Exception as e:
         # 予期しないエラー: 詳細をログに記録し、一般的なメッセージを返す
-        logger.error("解析処理で予期しないエラーが発生しました: %s", str(e), exc_info=True)
+        logger.error(
+            "解析処理で予期しないエラーが発生しました: %s", str(e), exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail="サーバー内部エラーが発生しました。しばらく時間をおいて再度お試しください。",
