@@ -897,3 +897,91 @@ class TestKeiyoudoushiGokanCombination:
 
         # 助詞がないため結合される
         assert "静か部屋" in surfaces
+
+
+class TestAdjectiveBaseForm:
+    """形容詞の基本形（表層形使用）のテスト"""
+
+    def test_adjective_uses_surface_form(self) -> None:
+        """形容詞が表層形を使用することを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「あらかわTwitter」の解析（「あらかわ」→「あらか」(形容詞)+「わ」(助詞)に誤分割される）
+        words = analyzer.analyze("あらかわTwitter")
+
+        # 形容詞「あらか」が表層形のまま抽出される
+        adj_words = [w for w in words if w.part_of_speech == "形容詞"]
+        assert len(adj_words) == 1
+        assert adj_words[0].surface == "あらか"
+        assert adj_words[0].base_form == "あらか"  # 表層形が基本形にも設定される
+
+    def test_adjective_conjugation_forms_kept_separate(self) -> None:
+        """形容詞の活用形が別々に保持されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「荒い」「荒く」「荒かった」の解析
+        words_arai = analyzer.analyze("荒い")
+        words_araku = analyzer.analyze("荒く")
+
+        # それぞれの表層形が保持される
+        adj_arai = [w for w in words_arai if w.part_of_speech == "形容詞"]
+        adj_araku = [w for w in words_araku if w.part_of_speech == "形容詞"]
+
+        assert len(adj_arai) == 1
+        assert len(adj_araku) == 1
+        assert adj_arai[0].surface == "荒い"
+        assert adj_arai[0].base_form == "荒い"
+        assert adj_araku[0].surface == "荒く"
+        assert adj_araku[0].base_form == "荒く"
+
+    def test_adjective_surface_form_in_sentence(self) -> None:
+        """文中の形容詞が表層形で抽出されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 「すごく楽しかった」の解析
+        words = analyzer.analyze("すごく楽しかった")
+
+        # 形容詞を抽出
+        adj_words = [w for w in words if w.part_of_speech == "形容詞"]
+
+        # 「すごく」と「楽しかっ」が表層形で抽出される
+        surfaces = [w.surface for w in adj_words]
+        base_forms = [w.base_form for w in adj_words]
+
+        assert "すごく" in surfaces
+        assert "楽しかっ" in surfaces
+        assert "すごく" in base_forms
+        assert "楽しかっ" in base_forms
+
+    def test_adjective_vs_noun_handling(self) -> None:
+        """形容詞と名詞の基本形処理の違いを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 名詞と形容詞を含む文
+        words = analyzer.analyze("面白い映画")
+
+        # 形容詞「面白い」は表層形
+        adj_words = [w for w in words if w.part_of_speech == "形容詞"]
+        assert len(adj_words) == 1
+        assert adj_words[0].surface == "面白い"
+        assert adj_words[0].base_form == "面白い"
+
+        # 名詞「映画」も表層形
+        noun_words = [w for w in words if w.part_of_speech == "名詞"]
+        assert len(noun_words) >= 1
+        movie_words = [w for w in noun_words if w.surface == "映画"]
+        assert len(movie_words) == 1
+        assert movie_words[0].base_form == "映画"
+
+    def test_real_world_case_arakawa_misparse(self) -> None:
+        """実際のケース「あらかわ」の誤解析を表層形で記録することを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 実際のメッセージ「あらかわのアイコン草」
+        words = analyzer.analyze("あらかわのアイコン草")
+
+        # 「あらか」が形容詞として抽出される（誤解析）
+        adj_words = [w for w in words if w.part_of_speech == "形容詞"]
+        assert len(adj_words) == 1
+        assert adj_words[0].surface == "あらか"
+        assert adj_words[0].base_form == "あらか"  # 「あらい」にまとめられない

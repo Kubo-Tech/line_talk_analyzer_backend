@@ -133,7 +133,7 @@ class MorphologicalAnalyzer:
                 pos_detail1 = features[1] if len(features) > 1 else ""
                 pos_detail2 = features[2] if len(features) > 2 else ""
                 pos_detail3 = features[3] if len(features) > 3 else ""
-                base_form = features[6] if len(features) > 6 else node.surface
+                base_form = features[6] if len(features) > 6 else node.surface  # 基本形
 
                 # 絵文字の場合は基本形ではなく表層形（絵文字そのまま）を使用
                 # neologd辞書は絵文字を日本語テキストに変換するため
@@ -147,6 +147,13 @@ class MorphologicalAnalyzer:
                 #       例: 「アオ」-> 「A-O」、「ひろゆき」-> 「西村博之」
                 # 理由3: ユーザーが実際に使った言葉そのままをカウントすべき
                 if pos == "名詞":
+                    base_form = node.surface
+
+                # 形容詞の場合も基本形ではなく表層形を使用
+                # 理由1: 活用形の多様性を保持（「荒い」「荒く」「荒かった」を別々にカウント）
+                # 理由2: 誤解析の影響を軽減（「あらかわ」→「あらか」+「わ」の誤分割を防止）
+                # 理由3: ユーザーの実際の表現をそのまま反映
+                if pos == "形容詞":
                     base_form = node.surface
 
                 word = Word(
