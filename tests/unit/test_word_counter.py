@@ -450,3 +450,173 @@ class TestWordCounter:
         test_appearances = message_count_dict["test"].appearances
         assert len(test_appearances) == 2
         assert all(msg.content == "test" for msg in test_appearances)
+
+
+class TestAdjectiveSurfaceFormCounting:
+    """形容詞を表層形で集計するテスト"""
+
+    def test_adjective_conjugations_counted_separately(self) -> None:
+        """形容詞の活用形が別々にカウントされることを確認"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="荒い",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 15),
+                user="ユーザーA",
+                content="荒く",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 20),
+                user="ユーザーA",
+                content="荒かった",
+            ),
+        ]
+
+        words_by_message = [
+            [Word("荒い", "荒い", "形容詞", "自立", "*", "*")],
+            [Word("荒く", "荒く", "形容詞", "自立", "*", "*")],
+            [Word("荒かっ", "荒かっ", "形容詞", "自立", "*", "*")],
+        ]
+
+        counter = WordCounter()
+        word_counts = counter.count_morphological_words(
+            messages, words_by_message, min_word_length=1
+        )
+
+        # 3つの異なる活用形として別々にカウントされる
+        assert len(word_counts) == 3
+
+        word_count_dict = {wc.base_form: wc for wc in word_counts}
+        assert "荒い" in word_count_dict
+        assert word_count_dict["荒い"].count == 1
+        assert "荒く" in word_count_dict
+        assert word_count_dict["荒く"].count == 1
+        assert "荒かっ" in word_count_dict
+        assert word_count_dict["荒かっ"].count == 1
+
+    def test_misparse_arakawa_counted_as_araka(self) -> None:
+        """「あらかわ」の誤解析が「あらか」として個別にカウントされることを確認"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="あらかわのアイコン",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 15),
+                user="ユーザーA",
+                content="あらかわTwitter",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 20),
+                user="ユーザーA",
+                content="荒い海",
+            ),
+        ]
+
+        # 「あらかわ」→「あらか」+「わ」に誤分割される
+        # 「荒い」は正しく形容詞として認識される
+        words_by_message = [
+            [
+                Word("あらか", "あらか", "形容詞", "自立", "*", "*"),
+                Word("アイコン", "アイコン", "名詞", "一般", "*", "*"),
+            ],
+            [
+                Word("あらか", "あらか", "形容詞", "自立", "*", "*"),
+                Word("Twitter", "Twitter", "名詞", "固有名詞", "*", "*"),
+            ],
+            [
+                Word("荒い", "荒い", "形容詞", "自立", "*", "*"),
+                Word("海", "海", "名詞", "一般", "*", "*"),
+            ],
+        ]
+
+        counter = WordCounter()
+        word_counts = counter.count_morphological_words(
+            messages, words_by_message, min_word_length=1
+        )
+
+        word_count_dict = {wc.base_form: wc for wc in word_counts}
+
+        # 「あらか」と「荒い」が別々にカウントされる
+        assert "あらか" in word_count_dict
+        assert word_count_dict["あらか"].count == 2
+        assert "荒い" in word_count_dict
+        assert word_count_dict["荒い"].count == 1
+        # 「あらい」としてまとめられない
+        assert "あらい" not in word_count_dict
+
+    def test_same_adjective_surface_form_multiple_times(self) -> None:
+        """同じ形容詞の表層形が複数回出現した場合のカウント"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="すごい",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 15),
+                user="ユーザーB",
+                content="すごい",
+            ),
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 20),
+                user="ユーザーA",
+                content="すごい",
+            ),
+        ]
+
+        words_by_message = [
+            [Word("すごい", "すごい", "形容詞", "自立", "*", "*")],
+            [Word("すごい", "すごい", "形容詞", "自立", "*", "*")],
+            [Word("すごい", "すごい", "形容詞", "自立", "*", "*")],
+        ]
+
+        counter = WordCounter()
+        word_counts = counter.count_morphological_words(
+            messages, words_by_message, min_word_length=1
+        )
+
+        # 1つの単語として3回カウント
+        assert len(word_counts) == 1
+        assert word_counts[0].base_form == "すごい"
+        assert word_counts[0].word == "すごい"
+        assert word_counts[0].count == 3
+        assert word_counts[0].user_counts == {"ユーザーA": 2, "ユーザーB": 1}
+
+    def test_adjective_vs_noun_separate_counting(self) -> None:
+        """形容詞と名詞の集計が独立していることを確認"""
+        messages = [
+            Message(
+                datetime=datetime(2024, 8, 1, 22, 12),
+                user="ユーザーA",
+                content="面白い映画",
+            ),
+        ]
+
+        # 形容詞と名詞が混在
+        words_by_message = [
+            [
+                Word("面白い", "面白い", "形容詞", "自立", "*", "*"),
+                Word("映画", "映画", "名詞", "一般", "*", "*"),
+            ]
+        ]
+
+        counter = WordCounter()
+        word_counts = counter.count_morphological_words(
+            messages, words_by_message, min_word_length=1
+        )
+
+        assert len(word_counts) == 2
+        word_count_dict = {wc.base_form: wc for wc in word_counts}
+
+        # 形容詞は表層形
+        assert "面白い" in word_count_dict
+        assert word_count_dict["面白い"].part_of_speech == "形容詞"
+
+        # 名詞も表層形
+        assert "映画" in word_count_dict
+        assert word_count_dict["映画"].part_of_speech == "名詞"
