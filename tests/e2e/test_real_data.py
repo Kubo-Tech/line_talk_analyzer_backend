@@ -35,7 +35,7 @@ class TestRealDataAnalysis:
         Returns:
             Path: sample.txtのパス
         """
-        return Path("/app/talk/sample01.txt")
+        return Path("/app/talk/sample.txt")
 
     def test_analyze_2025_data(self, sample_file_path: Path) -> None:
         """2025年分のデータを解析する

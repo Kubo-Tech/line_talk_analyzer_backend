@@ -839,10 +839,10 @@ class TestKeiyoudoushiGokanCombination:
 
         surfaces = [w.surface for w in words]
 
-        # 「晃」と「稀」が結合されて「優稀」になる
+        # 「優」と「稀」が結合されて「優稀」になる
         assert "優稀" in surfaces
         # 分離されていない
-        assert "晃" not in surfaces
+        assert "優" not in surfaces
         assert "稀" not in surfaces
 
     def test_keiyoudoushi_gokan_combined_in_full_name(self) -> None:
