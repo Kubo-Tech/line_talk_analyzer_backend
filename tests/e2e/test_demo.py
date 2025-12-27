@@ -6,7 +6,6 @@
 import time
 from io import BytesIO
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -101,9 +100,7 @@ class TestDemoE2E:
 
         response_text = json.dumps(data, ensure_ascii=False)
         response_size = len(response_text.encode("utf-8"))
-        assert (
-            response_size < 10 * 1024
-        ), f"レスポンスサイズが大きすぎます: {response_size} bytes"
+        assert response_size < 10 * 1024, f"レスポンスサイズが大きすぎます: {response_size} bytes"
 
     def test_demo_mode_consistent_response(self) -> None:
         """複数回呼び出しでの一貫性のテスト"""
