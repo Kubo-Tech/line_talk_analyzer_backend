@@ -140,6 +140,10 @@ class MorphologicalAnalyzer:
                 # 例: 😭 -> 「大泣き」、😂 -> 「嬉し涙」
                 if _contains_emoji(node.surface):
                     base_form = node.surface
+                    # 絵文字を含む単語は品詞を「記号」に統一
+                    # 理由: MeCabが絵文字を「記号」と「名詞」で交互に認識するため
+                    #       品詞を統一しないと連続記号として結合できない
+                    pos = "記号"
 
                 # 名詞の場合は基本形ではなく表層形を使用
                 # 理由1: 名詞には活用がないため、基本形を使う意味がない
@@ -169,8 +173,13 @@ class MorphologicalAnalyzer:
 
             node = node.next
 
+        # 連続する記号を結合（名詞結合より先に実行）
+        # 理由: MeCabが絵文字を「記号」と「名詞」を交互に認識するため、
+        #       記号結合を先に行うことで絵文字が名詞と誤結合されるのを防ぐ
+        combined_morphemes = self._combine_consecutive_words(all_morphemes, "記号")
+
         # 連続する名詞を結合
-        combined_morphemes = self._combine_consecutive_nouns(all_morphemes)
+        combined_morphemes = self._combine_consecutive_words(combined_morphemes, "名詞")
 
         # フィルタリングして最終結果を作成
         words: list[Word] = []
@@ -297,6 +306,10 @@ class MorphologicalAnalyzer:
         if word.part_of_speech != "名詞":
             return False
 
+        # 絵文字を含む単語は結合対象外（記号として処理されるべき）
+        if _contains_emoji(word.surface):
+            return False
+
         # 除外する名詞の細分類に該当する場合は対象外
         if word.part_of_speech_detail1 in self.NON_COMBINABLE_NOUN_DETAILS:
             return False
@@ -307,14 +320,20 @@ class MorphologicalAnalyzer:
 
         return False
 
-    def _combine_consecutive_nouns(self, words: list[Word]) -> list[Word]:
-        """連続する名詞を1つの単語に結合
+    def _combine_consecutive_words(
+        self, words: list[Word], target_pos: str
+    ) -> list[Word]:
+        """連続する指定品詞の単語を1つの単語に結合
+
+        名詞・記号など、連続する同じ品詞の単語を1つに結合します。
+        結合後の単語は表層形でカウントされます。
 
         Args:
             words (list[Word]): 形態素解析結果の単語リスト
+            target_pos (str): 結合対象の品詞（例: "名詞", "記号"）
 
         Returns:
-            list[Word]: 連続名詞を結合した単語リスト
+            list[Word]: 連続単語を結合した単語リスト
         """
         if not words:
             return []
@@ -325,26 +344,46 @@ class MorphologicalAnalyzer:
         while i < len(words):
             current_word = words[i]
 
-            # 結合可能な名詞の場合、連続する名詞を探す
-            if self._is_combinable_noun(current_word):
-                # 連続する名詞を収集
-                noun_group = [current_word]
+            # 結合対象かどうかを判定
+            is_target = False
+            if target_pos == "名詞":
+                # 名詞の場合は細分類もチェック
+                is_target = self._is_combinable_noun(current_word)
+            elif current_word.part_of_speech == target_pos:
+                # その他の品詞は品詞が一致すればOK
+                is_target = True
+
+            # 結合対象の場合、連続する単語を探す
+            if is_target:
+                # 連続する単語を収集
+                word_group = [current_word]
                 j = i + 1
 
-                while j < len(words) and self._is_combinable_noun(words[j]):
-                    noun_group.append(words[j])
-                    j += 1
+                while j < len(words):
+                    next_word = words[j]
+                    # 次の単語も結合対象かチェック
+                    is_next_target = False
+                    if target_pos == "名詞":
+                        is_next_target = self._is_combinable_noun(next_word)
+                    elif next_word.part_of_speech == target_pos:
+                        is_next_target = True
 
-                # 2つ以上の名詞が連続している場合は結合
-                if len(noun_group) > 1:
+                    if is_next_target:
+                        word_group.append(next_word)
+                        j += 1
+                    else:
+                        break
+
+                # 2つ以上の単語が連続している場合は結合
+                if len(word_group) > 1:
                     # 表層形を連結
-                    combined_surface = "".join(word.surface for word in noun_group)
+                    combined_surface = "".join(word.surface for word in word_group)
 
                     # 結合された単語を作成（基本形も表層形と同じにする）
                     combined_word = Word(
                         surface=combined_surface,
                         base_form=combined_surface,
-                        part_of_speech="名詞",
+                        part_of_speech=target_pos,
                         part_of_speech_detail1="一般",
                         part_of_speech_detail2="*",
                         part_of_speech_detail3="*",
@@ -356,7 +395,7 @@ class MorphologicalAnalyzer:
                     combined_words.append(current_word)
                     i += 1
             else:
-                # 名詞以外はそのまま追加
+                # 対象品詞以外はそのまま追加
                 combined_words.append(current_word)
                 i += 1
 
