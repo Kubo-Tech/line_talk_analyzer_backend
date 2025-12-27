@@ -301,3 +301,113 @@ class TestCORS:
         # CORSミドルウェアが正しく設定されていればaccess-control-allow-originヘッダーが返される
         assert response.status_code == 200
         assert "access-control-allow-origin" in response.headers
+
+
+class TestDemoMode:
+    """デモモードのテスト"""
+
+    def test_demo_file_upload(self) -> None:
+        """デモファイルでのAPI呼び出しのテスト"""
+        # デモファイル（空でも可）
+        content = b""
+        file = BytesIO(content)
+
+        import time
+
+        start_time = time.time()
+
+        response = client.post(
+            "/api/v1/analyze",
+            files={"file": ("__DEMO__.txt", file, "text/plain")},
+        )
+
+        elapsed_time = time.time() - start_time
+
+        # レスポンスの検証
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+
+        # 基本統計情報の検証
+        assert data["data"]["total_messages"] == 1000
+        assert data["data"]["total_users"] == 3
+
+        # 期間の検証
+        assert data["data"]["analysis_period"]["start_date"] == "2025-01-01"
+        assert data["data"]["analysis_period"]["end_date"] == "2025-12-31"
+
+        # 流行語ランキングの検証
+        top_words = data["data"]["morphological_analysis"]["top_words"]
+        assert len(top_words) == 50
+        assert top_words[0]["word"] == "エッホエッホ"
+        assert top_words[0]["count"] == 150
+
+        # 流行メッセージランキングの検証
+        top_messages = data["data"]["full_message_analysis"]["top_messages"]
+        assert len(top_messages) == 30
+        assert top_messages[0]["message"] == "それな"
+        assert top_messages[0]["count"] == 80
+
+        # ユーザー別解析の検証
+        user_analysis = data["data"]["user_analysis"]
+        assert len(user_analysis["word_analysis"]) == 3
+        assert len(user_analysis["message_analysis"]) == 3
+
+        # 遅延時間の検証（設定値は3秒、±0.5秒の誤差を許容）
+        assert 2.5 <= elapsed_time <= 3.5
+
+    def test_demo_file_vs_normal_file(self) -> None:
+        """デモファイルと通常ファイルの動作の違いを確認"""
+        # デモファイル
+        demo_file = BytesIO(b"")
+        demo_response = client.post(
+            "/api/v1/analyze",
+            files={"file": ("__DEMO__.txt", demo_file, "text/plain")},
+        )
+
+        # 通常ファイル（最小サンプル）
+        normal_content = """[LINE] テスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	テストメッセージ
+"""
+        normal_file = BytesIO(normal_content.encode("utf-8"))
+        normal_response = client.post(
+            "/api/v1/analyze",
+            files={"file": ("test.txt", normal_file, "text/plain")},
+        )
+
+        # 両方とも成功すること
+        assert demo_response.status_code == 200
+        assert normal_response.status_code == 200
+
+        # デモファイルは固定のメッセージ数
+        demo_data = demo_response.json()
+        assert demo_data["data"]["total_messages"] == 1000
+
+        # 通常ファイルは実際のメッセージ数
+        normal_data = normal_response.json()
+        assert normal_data["data"]["total_messages"] == 1
+
+    def test_non_demo_file(self) -> None:
+        """デモファイル以外は通常の解析が行われることを確認"""
+        # デモファイル名ではないファイル
+        content = """[LINE] テスト
+保存日時：2024/01/01 00:00
+
+2024/01/01(月)
+10:00	ユーザーA	テストメッセージ
+"""
+        file = BytesIO(content.encode("utf-8"))
+
+        response = client.post(
+            "/api/v1/analyze",
+            files={"file": ("demo.txt", file, "text/plain")},  # __DEMO__.txtではない
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # 実際の解析結果が返ること
+        assert data["data"]["total_messages"] == 1

@@ -10,11 +10,15 @@ from typing import cast
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from app.core.config import get_settings
-from app.models.response import AnalysisResult
+from app.models.response import AnalysisResult, WordAnalysisResult
 from app.services.analyzer import TalkAnalyzer
+from app.services.demo_service import DemoService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# デモサービスのシングルトンインスタンス
+demo_service = DemoService()
 
 
 def get_analyzer(request: Request) -> TalkAnalyzer:
@@ -89,6 +93,17 @@ async def analyze_talk(
     # ファイルの検証
     if not file.filename:
         raise HTTPException(status_code=400, detail="ファイルが指定されていません")
+
+    # デモファイル判定
+    if demo_service.is_demo_file(file.filename):
+        logger.info(f"[DEMO MODE] Demo file detected: {file.filename}")
+        # デモレスポンスを生成（遅延付き）
+        demo_data_dict = await demo_service.generate_demo_response(
+            delay_seconds=settings.DEMO_RESPONSE_DELAY_SECONDS
+        )
+        # dictからPydanticモデルに変換
+        demo_data = WordAnalysisResult(**demo_data_dict)
+        return AnalysisResult(status="success", data=demo_data)
 
     if not file.filename.endswith(".txt"):
         raise HTTPException(
