@@ -34,6 +34,19 @@ class Settings:
         self.MIN_WORD_LENGTH: int = self._get_int_env("MIN_WORD_LENGTH", 1)
         self.MIN_MESSAGE_LENGTH: int = self._get_int_env("MIN_MESSAGE_LENGTH", 2)
 
+        # デモモード設定
+        self.ENABLE_DEMO_MODE: bool = os.getenv("ENABLE_DEMO_MODE", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        self.DEMO_TRIGGER_FILENAME: str = os.getenv(
+            "DEMO_TRIGGER_FILENAME", "__DEMO__.txt"
+        )
+        self.DEMO_RESPONSE_DELAY_SECONDS: float = self._get_float_env(
+            "DEMO_RESPONSE_DELAY_SECONDS", 3.0
+        )
+
     def _get_int_env(self, key: str, default: int) -> int:
         """環境変数から整数値を安全に取得する
 
@@ -56,6 +69,34 @@ class Settings:
         except ValueError:
             warnings.warn(
                 f"環境変数 {key} の値 '{value_str}' は整数に変換できません。"
+                f"デフォルト値 {default} を使用します。",
+                UserWarning,
+                stacklevel=2,
+            )
+            return default
+
+    def _get_float_env(self, key: str, default: float) -> float:
+        """環境変数から浮動小数点数値を安全に取得する
+
+        環境変数の値が浮動小数点数に変換できない場合は、デフォルト値を使用し、
+        警告メッセージを表示する
+
+        Args:
+            key (str): 環境変数のキー
+            default (float): デフォルト値
+
+        Returns:
+            float: 環境変数の値またはデフォルト値
+        """
+        value_str = os.getenv(key)
+        if value_str is None:
+            return default
+
+        try:
+            return float(value_str)
+        except ValueError:
+            warnings.warn(
+                f"環境変数 {key} の値 '{value_str}' は浮動小数点数に変換できません。"
                 f"デフォルト値 {default} を使用します。",
                 UserWarning,
                 stacklevel=2,

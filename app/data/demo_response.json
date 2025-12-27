@@ -1,0 +1,192 @@
+{
+  "analysis_period": {
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31"
+  },
+  "total_messages": 1000,
+  "total_users": 3,
+  "morphological_analysis": {
+    "top_words": [
+      {"word": "エッホエッホ", "count": 150, "part_of_speech": "名詞"},
+      {"word": "チャッピー", "count": 120, "part_of_speech": "名詞"},
+      {"word": "ミャクミャク", "count": 105, "part_of_speech": "名詞"},
+      {"word": "ぬい活", "count": 92, "part_of_speech": "名詞"},
+      {"word": "ビジュイイじゃん", "count": 85, "part_of_speech": "感動詞"},
+      {"word": "ほいたらね", "count": 78, "part_of_speech": "副詞"},
+      {"word": "オンカジ", "count": 72, "part_of_speech": "名詞"},
+      {"word": "麻辣湯", "count": 68, "part_of_speech": "名詞"},
+      {"word": "トランプ関税", "count": 65, "part_of_speech": "名詞"},
+      {"word": "古古古米", "count": 60, "part_of_speech": "名詞"},
+      {"word": "物価高", "count": 58, "part_of_speech": "名詞"},
+      {"word": "二季", "count": 55, "part_of_speech": "名詞"},
+      {"word": "平成女児", "count": 52, "part_of_speech": "名詞"},
+      {"word": "ラブブ", "count": 50, "part_of_speech": "名詞"},
+      {"word": "国宝", "count": 48, "part_of_speech": "名詞"},
+      {"word": "教皇選挙", "count": 46, "part_of_speech": "名詞"},
+      {"word": "企業風土", "count": 44, "part_of_speech": "名詞"},
+      {"word": "リカバリーウエア", "count": 42, "part_of_speech": "名詞"},
+      {"word": "フリーランス保護法", "count": 40, "part_of_speech": "名詞"},
+      {"word": "薬膳", "count": 38, "part_of_speech": "名詞"},
+      {"word": "チョコミントよりもあなた", "count": 36, "part_of_speech": "名詞"},
+      {"word": "緊急銃猟", "count": 34, "part_of_speech": "名詞"},
+      {"word": "クマ被害", "count": 32, "part_of_speech": "名詞"},
+      {"word": "女性首相", "count": 30, "part_of_speech": "名詞"},
+      {"word": "おてつたび", "count": 28, "part_of_speech": "名詞"},
+      {"word": "オールドメディア", "count": 26, "part_of_speech": "名詞"},
+      {"word": "ひょうろく", "count": 24, "part_of_speech": "名詞"},
+      {"word": "卒業証書", "count": 22, "part_of_speech": "名詞"},
+      {"word": "長袖", "count": 20, "part_of_speech": "名詞"},
+      {"word": "戦後80年", "count": 18, "part_of_speech": "名詞"},
+      {"word": "ご飯", "count": 50, "part_of_speech": "名詞"},
+      {"word": "仕事", "count": 48, "part_of_speech": "名詞"},
+      {"word": "映画", "count": 46, "part_of_speech": "名詞"},
+      {"word": "美味しい", "count": 44, "part_of_speech": "形容詞"},
+      {"word": "楽しい", "count": 42, "part_of_speech": "形容詞"},
+      {"word": "疲れる", "count": 40, "part_of_speech": "動詞"},
+      {"word": "今日", "count": 38, "part_of_speech": "名詞"},
+      {"word": "明日", "count": 36, "part_of_speech": "名詞"},
+      {"word": "昨日", "count": 34, "part_of_speech": "名詞"},
+      {"word": "時間", "count": 32, "part_of_speech": "名詞"},
+      {"word": "予定", "count": 30, "part_of_speech": "名詞"},
+      {"word": "会議", "count": 28, "part_of_speech": "名詞"},
+      {"word": "ランチ", "count": 26, "part_of_speech": "名詞"},
+      {"word": "帰宅", "count": 24, "part_of_speech": "名詞"},
+      {"word": "天気", "count": 22, "part_of_speech": "名詞"},
+      {"word": "寒い", "count": 20, "part_of_speech": "形容詞"},
+      {"word": "暑い", "count": 18, "part_of_speech": "形容詞"},
+      {"word": "忙しい", "count": 16, "part_of_speech": "形容詞"},
+      {"word": "ありがとう", "count": 14, "part_of_speech": "感動詞"},
+      {"word": "よろしく", "count": 12, "part_of_speech": "副詞"}
+    ]
+  },
+  "full_message_analysis": {
+    "top_messages": [
+      {"message": "それな", "count": 80},
+      {"message": "わかる", "count": 65},
+      {"message": "草", "count": 58},
+      {"message": "まじで", "count": 52},
+      {"message": "やばい", "count": 48},
+      {"message": "確かに", "count": 44},
+      {"message": "なるほど", "count": 40},
+      {"message": "いいね", "count": 38},
+      {"message": "おつかれ", "count": 36},
+      {"message": "ありがとう", "count": 34},
+      {"message": "そうなんだ", "count": 32},
+      {"message": "うける", "count": 30},
+      {"message": "わかりみ", "count": 28},
+      {"message": "ほんとそれ", "count": 26},
+      {"message": "了解", "count": 24},
+      {"message": "おやすみ", "count": 22},
+      {"message": "おはよう", "count": 20},
+      {"message": "いってきます", "count": 18},
+      {"message": "ただいま", "count": 16},
+      {"message": "お疲れ様", "count": 15},
+      {"message": "すごい", "count": 14},
+      {"message": "えぐい", "count": 13},
+      {"message": "さすが", "count": 12},
+      {"message": "かわいい", "count": 11},
+      {"message": "最高", "count": 10},
+      {"message": "無理", "count": 9},
+      {"message": "マジか", "count": 8},
+      {"message": "ウケる", "count": 7},
+      {"message": "やばみ", "count": 6},
+      {"message": "りょ", "count": 5}
+    ]
+  },
+  "user_analysis": {
+    "word_analysis": [
+      {
+        "user": "太郎",
+        "top_words": [
+          {"word": "仕事", "count": 25, "part_of_speech": "名詞"},
+          {"word": "会議", "count": 18, "part_of_speech": "名詞"},
+          {"word": "忙しい", "count": 15, "part_of_speech": "形容詞"},
+          {"word": "疲れる", "count": 12, "part_of_speech": "動詞"},
+          {"word": "ランチ", "count": 10, "part_of_speech": "名詞"},
+          {"word": "帰宅", "count": 9, "part_of_speech": "名詞"},
+          {"word": "予定", "count": 8, "part_of_speech": "名詞"},
+          {"word": "明日", "count": 7, "part_of_speech": "名詞"},
+          {"word": "今日", "count": 6, "part_of_speech": "名詞"},
+          {"word": "時間", "count": 5, "part_of_speech": "名詞"}
+        ]
+      },
+      {
+        "user": "花子",
+        "top_words": [
+          {"word": "映画", "count": 30, "part_of_speech": "名詞"},
+          {"word": "ご飯", "count": 28, "part_of_speech": "名詞"},
+          {"word": "美味しい", "count": 25, "part_of_speech": "形容詞"},
+          {"word": "楽しい", "count": 22, "part_of_speech": "形容詞"},
+          {"word": "ミャクミャク", "count": 20, "part_of_speech": "名詞"},
+          {"word": "ぬい活", "count": 18, "part_of_speech": "名詞"},
+          {"word": "かわいい", "count": 15, "part_of_speech": "形容詞"},
+          {"word": "最高", "count": 12, "part_of_speech": "名詞"},
+          {"word": "天気", "count": 10, "part_of_speech": "名詞"},
+          {"word": "暑い", "count": 8, "part_of_speech": "形容詞"}
+        ]
+      },
+      {
+        "user": "次郎",
+        "top_words": [
+          {"word": "チャッピー", "count": 35, "part_of_speech": "名詞"},
+          {"word": "エッホエッホ", "count": 30, "part_of_speech": "名詞"},
+          {"word": "トランプ関税", "count": 20, "part_of_speech": "名詞"},
+          {"word": "物価高", "count": 18, "part_of_speech": "名詞"},
+          {"word": "古古古米", "count": 15, "part_of_speech": "名詞"},
+          {"word": "国宝", "count": 12, "part_of_speech": "名詞"},
+          {"word": "女性首相", "count": 10, "part_of_speech": "名詞"},
+          {"word": "戦後80年", "count": 8, "part_of_speech": "名詞"},
+          {"word": "昨日", "count": 6, "part_of_speech": "名詞"},
+          {"word": "寒い", "count": 5, "part_of_speech": "形容詞"}
+        ]
+      }
+    ],
+    "message_analysis": [
+      {
+        "user": "太郎",
+        "top_messages": [
+          {"message": "おつかれ", "count": 20},
+          {"message": "了解", "count": 15},
+          {"message": "確かに", "count": 12},
+          {"message": "なるほど", "count": 10},
+          {"message": "ありがとう", "count": 9},
+          {"message": "お疲れ様", "count": 8},
+          {"message": "いってきます", "count": 7},
+          {"message": "ただいま", "count": 6},
+          {"message": "おはよう", "count": 5},
+          {"message": "おやすみ", "count": 4}
+        ]
+      },
+      {
+        "user": "花子",
+        "top_messages": [
+          {"message": "それな", "count": 35},
+          {"message": "わかる", "count": 30},
+          {"message": "いいね", "count": 25},
+          {"message": "すごい", "count": 20},
+          {"message": "かわいい", "count": 18},
+          {"message": "最高", "count": 15},
+          {"message": "うける", "count": 12},
+          {"message": "さすが", "count": 10},
+          {"message": "ウケる", "count": 8},
+          {"message": "わかりみ", "count": 6}
+        ]
+      },
+      {
+        "user": "次郎",
+        "top_messages": [
+          {"message": "草", "count": 40},
+          {"message": "まじで", "count": 35},
+          {"message": "やばい", "count": 30},
+          {"message": "そうなんだ", "count": 20},
+          {"message": "ほんとそれ", "count": 15},
+          {"message": "えぐい", "count": 12},
+          {"message": "無理", "count": 10},
+          {"message": "マジか", "count": 8},
+          {"message": "やばみ", "count": 6},
+          {"message": "りょ", "count": 5}
+        ]
+      }
+    ]
+  }
+}
