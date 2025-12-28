@@ -42,6 +42,7 @@ class MorphologicalAnalyzer:
         "名詞",  # 名詞全般
         "形容詞",  # 形容詞全般
         "感動詞",  # 感動詞
+        # 記号は絵文字のみを対象とするため、_filter_by_pos()で個別に許可
     }
 
     # 除外する名詞の細分類
@@ -173,10 +174,25 @@ class MorphologicalAnalyzer:
 
             node = node.next
 
-        # 連続する記号を結合（名詞結合より先に実行）
+        # 絵文字を含まない記号を除外（記号結合前に実行）
+        # 理由: MeCabは句読点と絵文字を連続する記号として認識することがある
+        #       例: "！！！😭😭😭" → 1つの記号として認識される
+        #       絵文字のみを抽出したいため、絵文字を含まない記号を先に除外
+        emoji_only_morphemes: list[Word] = []
+        for word in all_morphemes:
+            if word.part_of_speech == "記号":
+                # 絵文字を含む記号のみを残す
+                if _contains_emoji(word.surface):
+                    emoji_only_morphemes.append(word)
+                # 絵文字を含まない記号は除外（句読点など）
+            else:
+                # 記号以外はそのまま残す
+                emoji_only_morphemes.append(word)
+
+        # 連続する記号（絵文字のみ）を結合（名詞結合より先に実行）
         # 理由: MeCabが絵文字を「記号」と「名詞」を交互に認識するため、
         #       記号結合を先に行うことで絵文字が名詞と誤結合されるのを防ぐ
-        combined_morphemes = self._combine_consecutive_words(all_morphemes, "記号")
+        combined_morphemes = self._combine_consecutive_words(emoji_only_morphemes, "記号")
 
         # 連続する名詞を結合
         combined_morphemes = self._combine_consecutive_words(combined_morphemes, "名詞")
@@ -275,9 +291,13 @@ class MorphologicalAnalyzer:
         if pos in self.exclude_parts:
             return False
 
-        # 絵文字を含む記号は特別に許可（表層形に絵文字が含まれる場合）
-        if pos == "記号" and _contains_emoji(word.surface):
-            return True
+        # 記号の場合、絵文字を含む場合のみ許可（句読点などは除外）
+        if pos == "記号":
+            # 絵文字を含む場合は許可
+            if _contains_emoji(word.surface):
+                return True
+            # 絵文字を含まない記号は除外
+            return False
 
         # デフォルト対象品詞に含まれていない場合は除外
         if pos not in self.DEFAULT_TARGET_POS:

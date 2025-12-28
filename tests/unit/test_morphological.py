@@ -992,20 +992,8 @@ class TestConsecutiveSymbolCombination:
     def test_combine_two_symbols(self) -> None:
         """2つの記号が結合されることを確認"""
         analyzer = MorphologicalAnalyzer(min_length=1)
-        words = analyzer.analyze("これは！！すごい")
-
-        # 結果に含まれる記号を確認
-        symbol_words = [w for w in words if w.part_of_speech == "記号"]
-
-        # 「！！」が1つの単語として結合されているはず
-        # ただし、記号はDEFAULT_TARGET_POSに含まれていないため除外される
-        # そのため、最終結果には含まれない
-        # ここでは_combine_consecutive_words自体が動作することを確認したい
-        # なので、analyzeではなく内部メソッドを直接テストする必要がある
-
-        # 代わりに、絵文字を含む記号でテスト（絵文字は特別に許可されている）
-        words2 = analyzer.analyze("😭😭😭")
-        emoji_words = [w for w in words2 if _contains_emoji(w.surface)]
+        words = analyzer.analyze("😭😭😭")
+        emoji_words = [w for w in words if _contains_emoji(w.surface)]
 
         # 絵文字3つが1つに結合されているはず
         assert len(emoji_words) == 1
@@ -1075,33 +1063,50 @@ class TestConsecutiveSymbolCombination:
         assert emoji_words[0].surface == "😭"
         assert emoji_words[0].base_form == "😭"
 
-    def test_consecutive_punctuation(self) -> None:
-        """連続する句読点の処理を確認"""
+    def test_emoji_symbols_included_punctuation_excluded(self) -> None:
+        """絵文字のみが抽出され、句読点などは除外されることを確認
+
+        連続する絵文字は結合され、1つの単語としてカウントされる。
+        句読点などの通常の記号は除外される。
+        """
         analyzer = MorphologicalAnalyzer(min_length=1)
-        words = analyzer.analyze("えー！！！")
 
-        # 「！！！」は記号として認識され結合されるが、DEFAULT_TARGET_POSに含まれないため除外される
-        # 「えー」はフィラーとして認識され、DEFAULT_TARGET_POSに含まれないため除外される
-        # そのため最終結果は空になる
+        # 絵文字と句読点が混在するケース
+        words = analyzer.analyze("すごい！！！😭😭😭")
         surfaces = [w.surface for w in words]
-        assert len(surfaces) == 0
 
-        # 実際に記号が結合されることを確認するため、別のテストを実施
-        words2 = analyzer.analyze("すごい！！！")
         # 「すごい」は形容詞として抽出される
-        # 「！！！」は結合されるが除外される
-        surfaces2 = [w.surface for w in words2]
-        assert "すごい" in surfaces2
+        assert "すごい" in surfaces
+
+        # 絵文字は記号として抽出される
+        assert "😭😭😭" in surfaces
+
+        # 句読点は除外される
+        assert "！！！" not in surfaces
+        assert "！" not in surfaces
+
+        # 記号品詞は絵文字のみ
+        symbol_words = [w for w in words if w.part_of_speech == "記号"]
+        assert len(symbol_words) == 1  # 「😭😭😭」のみ
+        assert symbol_words[0].surface == "😭😭😭"
 
     def test_mixed_emoji_and_text_symbols(self) -> None:
-        """絵文字と通常の記号が混在する場合の処理を確認"""
+        """絵文字と通常の記号が混在する場合、絵文字のみが抽出されることを確認"""
         analyzer = MorphologicalAnalyzer(min_length=1)
-        # neologdでは「！」と「😭」が両方とも記号として認識される
+        # 句読点と絵文字が混在するケース
         words = analyzer.analyze("！😭！😭")
 
-        # 記号として認識され、絵文字を含むため抽出される
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        # 絵文字を含む記号のみが抽出される
+        symbol_words = [w for w in words if w.part_of_speech == "記号"]
 
-        # 絵文字と「！」が結合されるかは辞書の解析次第
-        # 少なくとも絵文字が含まれる記号として抽出される
-        assert len(emoji_words) >= 1
+        # MeCabの解析結果次第で「😭😭」と結合されるか「😭」2つになるか異なる
+        # いずれにせよ、絵文字のみが記号として抽出され、「！」は除外される
+        assert len(symbol_words) >= 1
+
+        # 全ての記号単語に絵文字が含まれることを確認
+        for word in symbol_words:
+            assert _contains_emoji(word.surface)
+
+        # 句読点が単独で抽出されていないことを確認
+        surfaces = [w.surface for w in words]
+        assert "！" not in surfaces
