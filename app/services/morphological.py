@@ -174,12 +174,23 @@ class MorphologicalAnalyzer:
 
             node = node.next
 
-        # 絵文字を含まない記号を除外（記号結合前に実行）
+        # 連続する絵文字（記号）を結合（名詞結合・記号フィルタリングより先に実行）
+        # 重要: 絵文字が元々連続しているかを判定するため、絵文字を含まない記号を除外する前に実行
+        # 例: "！😭！😭" の場合、「！」と「😭」が交互に出現しているため、
+        #     「😭」は連続していない → 結合されない
+        # 例: "😭😭😭" の場合、「😭」が連続している → 結合される
+        combined_morphemes = self._combine_consecutive_words(all_morphemes, "記号")
+
+        # 連続する名詞を結合
+        combined_morphemes = self._combine_consecutive_words(combined_morphemes, "名詞")
+
+        # 絵文字を含まない記号を除外
         # 理由: MeCabは句読点と絵文字を連続する記号として認識することがある
         #       例: "！！！😭😭😭" → 1つの記号として認識される
-        #       絵文字のみを抽出したいため、絵文字を含まない記号を先に除外
+        #       絵文字のみを抽出したいため、絵文字を含まない記号を除外
+        #       ※ただし、連続する絵文字の結合判定は除外前に行う
         emoji_only_morphemes: list[Word] = []
-        for word in all_morphemes:
+        for word in combined_morphemes:
             if word.part_of_speech == "記号":
                 # 絵文字を含む記号のみを残す
                 if _contains_emoji(word.surface):
@@ -189,17 +200,9 @@ class MorphologicalAnalyzer:
                 # 記号以外はそのまま残す
                 emoji_only_morphemes.append(word)
 
-        # 連続する記号（絵文字のみ）を結合（名詞結合より先に実行）
-        # 理由: MeCabが絵文字を「記号」と「名詞」を交互に認識するため、
-        #       記号結合を先に行うことで絵文字が名詞と誤結合されるのを防ぐ
-        combined_morphemes = self._combine_consecutive_words(emoji_only_morphemes, "記号")
-
-        # 連続する名詞を結合
-        combined_morphemes = self._combine_consecutive_words(combined_morphemes, "名詞")
-
         # フィルタリングして最終結果を作成
         words: list[Word] = []
-        for word in combined_morphemes:
+        for word in emoji_only_morphemes:
             if self._should_include(word):
                 words.append(word)
 
@@ -352,6 +355,11 @@ class MorphologicalAnalyzer:
         """
         if target_pos == "名詞":
             return self._is_combinable_noun(word)
+        elif target_pos == "記号":
+            # 記号の場合、絵文字を含む記号のみを結合対象とする
+            # これにより「！😭！😭」のような場合に、「！」が除外された後に
+            # 「😭😭」として誤結合されることを防ぐ
+            return word.part_of_speech == "記号" and _contains_emoji(word.surface)
         return word.part_of_speech == target_pos
 
     def _combine_consecutive_words(self, words: list[Word], target_pos: str) -> list[Word]:
