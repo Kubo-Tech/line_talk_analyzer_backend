@@ -5,7 +5,7 @@ MorphologicalAnalyzerクラスの各機能を網羅的にテストする
 
 import pytest
 
-from app.services.morphological import MorphologicalAnalyzer, Word
+from app.services.morphological import MorphologicalAnalyzer, Word, contains_emoji
 
 
 class TestWord:
@@ -361,10 +361,9 @@ class TestEmojiHandling:
 
         surfaces = [w.surface for w in words]
 
-        # 各絵文字が個別に抽出される
-        assert "😭" in surfaces
-        assert "😂" in surfaces
-        assert "😊" in surfaces
+        # 連続する絵文字は1つに結合される
+        assert len(words) == 1
+        assert "😭😂😊" in surfaces
 
     def test_emoji_vs_text(self) -> None:
         """絵文字とテキストが区別されるテスト"""
@@ -409,9 +408,9 @@ class TestEmojiHandling:
         assert any("ライブ" in s for s in surfaces)
         assert any("最高" in s for s in surfaces)
 
-        # 絵文字も抽出される
-        assert "🎉" in surfaces
-        assert "🎉" in base_forms  # 基本形も絵文字のまま
+        # 連続する絵文字は結合される
+        assert "🎉✨" in surfaces
+        assert "🎉✨" in base_forms  # 基本形も絵文字のまま
 
 
 class TestControlCharacterFiltering:
@@ -985,3 +984,137 @@ class TestAdjectiveBaseForm:
         assert len(adj_words) == 1
         assert adj_words[0].surface == "あらか"
         assert adj_words[0].base_form == "あらか"  # 「あらい」にまとめられない
+
+
+class TestConsecutiveSymbolCombination:
+    """連続する記号の結合機能のテスト"""
+
+    def test_combine_two_symbols(self) -> None:
+        """2つの記号が結合されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("😭😭😭")
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
+
+        # 絵文字3つが1つに結合されているはず
+        assert len(emoji_words) == 1
+        assert emoji_words[0].surface == "😭😭😭"
+        assert emoji_words[0].base_form == "😭😭😭"
+        assert emoji_words[0].part_of_speech == "記号"
+
+    def test_combine_multiple_symbols(self) -> None:
+        """3つ以上の記号が結合されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("😂😂😂😂😂")
+
+        # 絵文字5つが1つに結合
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
+        assert len(emoji_words) == 1
+        assert emoji_words[0].surface == "😂😂😂😂😂"
+        assert emoji_words[0].base_form == "😂😂😂😂😂"
+
+    def test_different_emojis_combined(self) -> None:
+        """異なる絵文字が連続している場合も結合されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("😭😂🙏")
+
+        # 異なる絵文字も連続していれば結合される
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
+        assert len(emoji_words) == 1
+        assert emoji_words[0].surface == "😭😂🙏"
+        assert emoji_words[0].base_form == "😭😂🙏"
+
+    def test_symbols_separated_by_text(self) -> None:
+        """テキストで区切られた記号は別々にカウントされることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("😭テスト😭")
+
+        # 「😭」が2回出現するが、テキストで区切られているため別々
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
+        assert len(emoji_words) == 2
+        assert emoji_words[0].surface == "😭"
+        assert emoji_words[1].surface == "😭"
+
+    def test_symbols_with_nouns(self) -> None:
+        """記号と名詞が混在する場合、それぞれ正しく処理されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("dアニメストア😭😭")
+
+        # 名詞が結合されている
+        noun_words = [w for w in words if w.part_of_speech == "名詞"]
+        combined_nouns = [w for w in noun_words if len(w.surface) > 1]
+        assert len(combined_nouns) >= 1
+        # 「dアニメストア」が結合されているはず
+        d_anime = [w for w in combined_nouns if "d" in w.surface and "ストア" in w.surface]
+        assert len(d_anime) == 1
+
+        # 記号（絵文字）も結合されている
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
+        assert len(emoji_words) == 1
+        assert emoji_words[0].surface == "😭😭"
+
+    def test_single_symbol_not_combined(self) -> None:
+        """1つだけの記号は結合されないことを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        words = analyzer.analyze("すごい😭")
+
+        # 1つの絵文字はそのまま
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
+        assert len(emoji_words) == 1
+        assert emoji_words[0].surface == "😭"
+        assert emoji_words[0].base_form == "😭"
+
+    def test_emoji_symbols_included_punctuation_excluded(self) -> None:
+        """絵文字のみが抽出され、句読点などは除外されることを確認
+
+        連続する絵文字は結合され、1つの単語としてカウントされる。
+        句読点などの通常の記号は除外される。
+        """
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 絵文字と句読点が混在するケース
+        words = analyzer.analyze("すごい！！！😭😭😭")
+        surfaces = [w.surface for w in words]
+
+        # 「すごい」は形容詞として抽出される
+        assert "すごい" in surfaces
+
+        # 絵文字は記号として抽出される
+        assert "😭😭😭" in surfaces
+
+        # 句読点は除外される
+        assert "！！！" not in surfaces
+        assert "！" not in surfaces
+
+        # 記号品詞は絵文字のみ
+        symbol_words = [w for w in words if w.part_of_speech == "記号"]
+        assert len(symbol_words) == 1  # 「😭😭😭」のみ
+        assert symbol_words[0].surface == "😭😭😭"
+
+    def test_mixed_emoji_and_text_symbols(self) -> None:
+        """絵文字と通常の記号が混在する場合、絵文字のみが抽出され、連続していないため結合されないことを確認
+
+        MeCabは「！😭！😭」を「！」「😭」「！」「😭」と個別に解析する。
+        絵文字を含まない記号（「！」）は除外処理で削除され、「😭」のみが残る。
+        残った「😭」2つは元々連続していなかった（間に「！」があった）ため、結合されない。
+        """
+        analyzer = MorphologicalAnalyzer(min_length=1)
+        # 句読点と絵文字が混在するケース
+        words = analyzer.analyze("！😭！😭")
+
+        # 絵文字を含む記号のみが抽出される
+        symbol_words = [w for w in words if w.part_of_speech == "記号"]
+
+        # 「😭」が2回別々にカウントされる（元々連続していなかったため結合されない）
+        assert len(symbol_words) == 2
+        assert symbol_words[0].surface == "😭"
+        assert symbol_words[0].base_form == "😭"
+        assert symbol_words[1].surface == "😭"
+        assert symbol_words[1].base_form == "😭"
+
+        # 全ての記号単語に絵文字が含まれることを確認
+        for word in symbol_words:
+            assert contains_emoji(word.surface)
+
+        # 句読点が単独で抽出されていないことを確認
+        surfaces = [w.surface for w in words]
+        assert "！" not in surfaces

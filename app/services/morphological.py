@@ -42,6 +42,7 @@ class MorphologicalAnalyzer:
         "名詞",  # 名詞全般
         "形容詞",  # 形容詞全般
         "感動詞",  # 感動詞
+        # 記号は絵文字のみを対象とするため、_filter_by_pos()で個別に許可
     }
 
     # 除外する名詞の細分類
@@ -138,8 +139,12 @@ class MorphologicalAnalyzer:
                 # 絵文字の場合は基本形ではなく表層形（絵文字そのまま）を使用
                 # neologd辞書は絵文字を日本語テキストに変換するため
                 # 例: 😭 -> 「大泣き」、😂 -> 「嬉し涙」
-                if _contains_emoji(node.surface):
+                if contains_emoji(node.surface):
                     base_form = node.surface
+                    # 絵文字を含む単語は品詞を「記号」に統一
+                    # 理由: MeCabが絵文字を「記号」と「名詞」で交互に認識するため
+                    #       品詞を統一しないと連続記号として結合できない
+                    pos = "記号"
 
                 # 名詞の場合は基本形ではなく表層形を使用
                 # 理由1: 名詞には活用がないため、基本形を使う意味がない
@@ -169,12 +174,35 @@ class MorphologicalAnalyzer:
 
             node = node.next
 
+        # 連続する絵文字（記号）を結合（名詞結合・記号フィルタリングより先に実行）
+        # 重要: 絵文字が元々連続しているかを判定するため、絵文字を含まない記号を除外する前に実行
+        # 例: "！😭！😭" の場合、「！」と「😭」が交互に出現しているため、
+        #     「😭」は連続していない → 結合されない
+        # 例: "😭😭😭" の場合、「😭」が連続している → 結合される
+        combined_morphemes = self._combine_consecutive_words(all_morphemes, "記号")
+
         # 連続する名詞を結合
-        combined_morphemes = self._combine_consecutive_nouns(all_morphemes)
+        combined_morphemes = self._combine_consecutive_words(combined_morphemes, "名詞")
+
+        # 絵文字を含まない記号を除外
+        # 理由: MeCabは句読点と絵文字を連続する記号として認識することがある
+        #       例: "！！！😭😭😭" → 1つの記号として認識される
+        #       絵文字のみを抽出したいため、絵文字を含まない記号を除外
+        #       ※ただし、連続する絵文字の結合判定は除外前に行う
+        emoji_only_morphemes: list[Word] = []
+        for word in combined_morphemes:
+            if word.part_of_speech == "記号":
+                # 絵文字を含む記号のみを残す
+                if contains_emoji(word.surface):
+                    emoji_only_morphemes.append(word)
+                # 絵文字を含まない記号は除外（句読点など）
+            else:
+                # 記号以外はそのまま残す
+                emoji_only_morphemes.append(word)
 
         # フィルタリングして最終結果を作成
         words: list[Word] = []
-        for word in combined_morphemes:
+        for word in emoji_only_morphemes:
             if self._should_include(word):
                 words.append(word)
 
@@ -266,9 +294,13 @@ class MorphologicalAnalyzer:
         if pos in self.exclude_parts:
             return False
 
-        # 絵文字を含む記号は特別に許可（表層形に絵文字が含まれる場合）
-        if pos == "記号" and _contains_emoji(word.surface):
-            return True
+        # 記号の場合、絵文字を含む場合のみ許可（句読点などは除外）
+        if pos == "記号":
+            # 絵文字を含む場合は許可
+            if contains_emoji(word.surface):
+                return True
+            # 絵文字を含まない記号は除外
+            return False
 
         # デフォルト対象品詞に含まれていない場合は除外
         if pos not in self.DEFAULT_TARGET_POS:
@@ -297,6 +329,10 @@ class MorphologicalAnalyzer:
         if word.part_of_speech != "名詞":
             return False
 
+        # 絵文字を含む単語は結合対象外（記号として処理されるべき）
+        if contains_emoji(word.surface):
+            return False
+
         # 除外する名詞の細分類に該当する場合は対象外
         if word.part_of_speech_detail1 in self.NON_COMBINABLE_NOUN_DETAILS:
             return False
@@ -307,14 +343,37 @@ class MorphologicalAnalyzer:
 
         return False
 
-    def _combine_consecutive_nouns(self, words: list[Word]) -> list[Word]:
-        """連続する名詞を1つの単語に結合
+    def _is_target_for_combination(self, word: Word, target_pos: str) -> bool:
+        """単語が指定品詞の結合対象かどうかを判定
+
+        Args:
+            word (Word): チェック対象の単語
+            target_pos (str): 結合対象の品詞（例: "名詞", "記号"）
+
+        Returns:
+            bool: 結合対象ならTrue
+        """
+        if target_pos == "名詞":
+            return self._is_combinable_noun(word)
+        elif target_pos == "記号":
+            # 記号の場合、絵文字を含む記号のみを結合対象とする
+            # これにより「！😭！😭」のような場合に、「！」が除外された後に
+            # 「😭😭」として誤結合されることを防ぐ
+            return word.part_of_speech == "記号" and contains_emoji(word.surface)
+        return word.part_of_speech == target_pos
+
+    def _combine_consecutive_words(self, words: list[Word], target_pos: str) -> list[Word]:
+        """連続する指定品詞の単語を1つの単語に結合
+
+        名詞・記号など、連続する同じ品詞の単語を1つに結合します。
+        結合後の単語は表層形でカウントされます。
 
         Args:
             words (list[Word]): 形態素解析結果の単語リスト
+            target_pos (str): 結合対象の品詞（例: "名詞", "記号"）
 
         Returns:
-            list[Word]: 連続名詞を結合した単語リスト
+            list[Word]: 連続単語を結合した単語リスト
         """
         if not words:
             return []
@@ -325,26 +384,36 @@ class MorphologicalAnalyzer:
         while i < len(words):
             current_word = words[i]
 
-            # 結合可能な名詞の場合、連続する名詞を探す
-            if self._is_combinable_noun(current_word):
-                # 連続する名詞を収集
-                noun_group = [current_word]
+            # 結合対象かどうかを判定
+            is_target = self._is_target_for_combination(current_word, target_pos)
+
+            # 結合対象の場合、連続する単語を探す
+            if is_target:
+                # 連続する単語を収集
+                word_group = [current_word]
                 j = i + 1
 
-                while j < len(words) and self._is_combinable_noun(words[j]):
-                    noun_group.append(words[j])
-                    j += 1
+                while j < len(words):
+                    next_word = words[j]
+                    # 次の単語も結合対象かチェック
+                    is_next_target = self._is_target_for_combination(next_word, target_pos)
 
-                # 2つ以上の名詞が連続している場合は結合
-                if len(noun_group) > 1:
+                    if is_next_target:
+                        word_group.append(next_word)
+                        j += 1
+                    else:
+                        break
+
+                # 2つ以上の単語が連続している場合は結合
+                if len(word_group) > 1:
                     # 表層形を連結
-                    combined_surface = "".join(word.surface for word in noun_group)
+                    combined_surface = "".join(word.surface for word in word_group)
 
                     # 結合された単語を作成（基本形も表層形と同じにする）
                     combined_word = Word(
                         surface=combined_surface,
                         base_form=combined_surface,
-                        part_of_speech="名詞",
+                        part_of_speech=target_pos,
                         part_of_speech_detail1="一般",
                         part_of_speech_detail2="*",
                         part_of_speech_detail3="*",
@@ -356,45 +425,14 @@ class MorphologicalAnalyzer:
                     combined_words.append(current_word)
                     i += 1
             else:
-                # 名詞以外はそのまま追加
+                # 対象品詞以外はそのまま追加
                 combined_words.append(current_word)
                 i += 1
 
         return combined_words
 
 
-def _is_single_kana(text: str) -> bool:
-    """1文字のひらがな、カタカナかどうかを判定
-
-    Args:
-        text (str): 判定対象の文字列
-
-    Returns:
-        bool: 1文字のひらがな、カタカナならTrue
-    """
-    # 1文字でない場合はFalse
-    if len(text) != 1:
-        return False
-
-    char = text[0]
-    code_point = ord(char)
-
-    # ひらがな（U+3040-U+309F）
-    if 0x3040 <= code_point <= 0x309F:
-        return True
-
-    # カタカナ（U+30A0-U+30FF）
-    if 0x30A0 <= code_point <= 0x30FF:
-        return True
-
-    # 半角カタカナ（U+FF65-U+FF9F）
-    if 0xFF65 <= code_point <= 0xFF9F:
-        return True
-
-    return False
-
-
-def _contains_emoji(text: str) -> bool:
+def contains_emoji(text: str) -> bool:
     """テキストに絵文字が含まれるかをチェック
 
     バリエーションセレクタなどの制御文字は絵文字とみなさない
@@ -435,5 +473,36 @@ def _contains_emoji(text: str) -> bool:
             or (0x2300 <= code_point <= 0x23FF)  # その他の技術記号
         ):
             return True
+
+    return False
+
+
+def _is_single_kana(text: str) -> bool:
+    """1文字のひらがな、カタカナかどうかを判定
+
+    Args:
+        text (str): 判定対象の文字列
+
+    Returns:
+        bool: 1文字のひらがな、カタカナならTrue
+    """
+    # 1文字でない場合はFalse
+    if len(text) != 1:
+        return False
+
+    char = text[0]
+    code_point = ord(char)
+
+    # ひらがな（U+3040-U+309F）
+    if 0x3040 <= code_point <= 0x309F:
+        return True
+
+    # カタカナ（U+30A0-U+30FF）
+    if 0x30A0 <= code_point <= 0x30FF:
+        return True
+
+    # 半角カタカナ（U+FF65-U+FF9F）
+    if 0xFF65 <= code_point <= 0xFF9F:
+        return True
 
     return False
