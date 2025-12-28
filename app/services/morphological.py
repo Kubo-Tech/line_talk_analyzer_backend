@@ -139,7 +139,7 @@ class MorphologicalAnalyzer:
                 # 絵文字の場合は基本形ではなく表層形（絵文字そのまま）を使用
                 # neologd辞書は絵文字を日本語テキストに変換するため
                 # 例: 😭 -> 「大泣き」、😂 -> 「嬉し涙」
-                if _contains_emoji(node.surface):
+                if contains_emoji(node.surface):
                     base_form = node.surface
                     # 絵文字を含む単語は品詞を「記号」に統一
                     # 理由: MeCabが絵文字を「記号」と「名詞」で交互に認識するため
@@ -193,7 +193,7 @@ class MorphologicalAnalyzer:
         for word in combined_morphemes:
             if word.part_of_speech == "記号":
                 # 絵文字を含む記号のみを残す
-                if _contains_emoji(word.surface):
+                if contains_emoji(word.surface):
                     emoji_only_morphemes.append(word)
                 # 絵文字を含まない記号は除外（句読点など）
             else:
@@ -297,7 +297,7 @@ class MorphologicalAnalyzer:
         # 記号の場合、絵文字を含む場合のみ許可（句読点などは除外）
         if pos == "記号":
             # 絵文字を含む場合は許可
-            if _contains_emoji(word.surface):
+            if contains_emoji(word.surface):
                 return True
             # 絵文字を含まない記号は除外
             return False
@@ -330,7 +330,7 @@ class MorphologicalAnalyzer:
             return False
 
         # 絵文字を含む単語は結合対象外（記号として処理されるべき）
-        if _contains_emoji(word.surface):
+        if contains_emoji(word.surface):
             return False
 
         # 除外する名詞の細分類に該当する場合は対象外
@@ -359,7 +359,7 @@ class MorphologicalAnalyzer:
             # 記号の場合、絵文字を含む記号のみを結合対象とする
             # これにより「！😭！😭」のような場合に、「！」が除外された後に
             # 「😭😭」として誤結合されることを防ぐ
-            return word.part_of_speech == "記号" and _contains_emoji(word.surface)
+            return word.part_of_speech == "記号" and contains_emoji(word.surface)
         return word.part_of_speech == target_pos
 
     def _combine_consecutive_words(self, words: list[Word], target_pos: str) -> list[Word]:
@@ -432,38 +432,7 @@ class MorphologicalAnalyzer:
         return combined_words
 
 
-def _is_single_kana(text: str) -> bool:
-    """1文字のひらがな、カタカナかどうかを判定
-
-    Args:
-        text (str): 判定対象の文字列
-
-    Returns:
-        bool: 1文字のひらがな、カタカナならTrue
-    """
-    # 1文字でない場合はFalse
-    if len(text) != 1:
-        return False
-
-    char = text[0]
-    code_point = ord(char)
-
-    # ひらがな（U+3040-U+309F）
-    if 0x3040 <= code_point <= 0x309F:
-        return True
-
-    # カタカナ（U+30A0-U+30FF）
-    if 0x30A0 <= code_point <= 0x30FF:
-        return True
-
-    # 半角カタカナ（U+FF65-U+FF9F）
-    if 0xFF65 <= code_point <= 0xFF9F:
-        return True
-
-    return False
-
-
-def _contains_emoji(text: str) -> bool:
+def contains_emoji(text: str) -> bool:
     """テキストに絵文字が含まれるかをチェック
 
     バリエーションセレクタなどの制御文字は絵文字とみなさない
@@ -504,5 +473,36 @@ def _contains_emoji(text: str) -> bool:
             or (0x2300 <= code_point <= 0x23FF)  # その他の技術記号
         ):
             return True
+
+    return False
+
+
+def _is_single_kana(text: str) -> bool:
+    """1文字のひらがな、カタカナかどうかを判定
+
+    Args:
+        text (str): 判定対象の文字列
+
+    Returns:
+        bool: 1文字のひらがな、カタカナならTrue
+    """
+    # 1文字でない場合はFalse
+    if len(text) != 1:
+        return False
+
+    char = text[0]
+    code_point = ord(char)
+
+    # ひらがな（U+3040-U+309F）
+    if 0x3040 <= code_point <= 0x309F:
+        return True
+
+    # カタカナ（U+30A0-U+30FF）
+    if 0x30A0 <= code_point <= 0x30FF:
+        return True
+
+    # 半角カタカナ（U+FF65-U+FF9F）
+    if 0xFF65 <= code_point <= 0xFF9F:
+        return True
 
     return False

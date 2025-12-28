@@ -5,7 +5,7 @@ MorphologicalAnalyzerクラスの各機能を網羅的にテストする
 
 import pytest
 
-from app.services.morphological import MorphologicalAnalyzer, Word, _contains_emoji
+from app.services.morphological import MorphologicalAnalyzer, Word, contains_emoji
 
 
 class TestWord:
@@ -993,7 +993,7 @@ class TestConsecutiveSymbolCombination:
         """2つの記号が結合されることを確認"""
         analyzer = MorphologicalAnalyzer(min_length=1)
         words = analyzer.analyze("😭😭😭")
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
 
         # 絵文字3つが1つに結合されているはず
         assert len(emoji_words) == 1
@@ -1007,7 +1007,7 @@ class TestConsecutiveSymbolCombination:
         words = analyzer.analyze("😂😂😂😂😂")
 
         # 絵文字5つが1つに結合
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
         assert len(emoji_words) == 1
         assert emoji_words[0].surface == "😂😂😂😂😂"
         assert emoji_words[0].base_form == "😂😂😂😂😂"
@@ -1018,7 +1018,7 @@ class TestConsecutiveSymbolCombination:
         words = analyzer.analyze("😭😂🙏")
 
         # 異なる絵文字も連続していれば結合される
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
         assert len(emoji_words) == 1
         assert emoji_words[0].surface == "😭😂🙏"
         assert emoji_words[0].base_form == "😭😂🙏"
@@ -1029,7 +1029,7 @@ class TestConsecutiveSymbolCombination:
         words = analyzer.analyze("😭テスト😭")
 
         # 「😭」が2回出現するが、テキストで区切られているため別々
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
         assert len(emoji_words) == 2
         assert emoji_words[0].surface == "😭"
         assert emoji_words[1].surface == "😭"
@@ -1048,7 +1048,7 @@ class TestConsecutiveSymbolCombination:
         assert len(d_anime) == 1
 
         # 記号（絵文字）も結合されている
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
         assert len(emoji_words) == 1
         assert emoji_words[0].surface == "😭😭"
 
@@ -1058,7 +1058,7 @@ class TestConsecutiveSymbolCombination:
         words = analyzer.analyze("すごい😭")
 
         # 1つの絵文字はそのまま
-        emoji_words = [w for w in words if _contains_emoji(w.surface)]
+        emoji_words = [w for w in words if contains_emoji(w.surface)]
         assert len(emoji_words) == 1
         assert emoji_words[0].surface == "😭"
         assert emoji_words[0].base_form == "😭"
@@ -1113,7 +1113,7 @@ class TestConsecutiveSymbolCombination:
 
         # 全ての記号単語に絵文字が含まれることを確認
         for word in symbol_words:
-            assert _contains_emoji(word.surface)
+            assert contains_emoji(word.surface)
 
         # 句読点が単独で抽出されていないことを確認
         surfaces = [w.surface for w in words]
