@@ -320,9 +320,21 @@ class MorphologicalAnalyzer:
 
         return False
 
-    def _combine_consecutive_words(
-        self, words: list[Word], target_pos: str
-    ) -> list[Word]:
+    def _is_target_for_combination(self, word: Word, target_pos: str) -> bool:
+        """単語が指定品詞の結合対象かどうかを判定
+
+        Args:
+            word (Word): チェック対象の単語
+            target_pos (str): 結合対象の品詞（例: "名詞", "記号"）
+
+        Returns:
+            bool: 結合対象ならTrue
+        """
+        if target_pos == "名詞":
+            return self._is_combinable_noun(word)
+        return word.part_of_speech == target_pos
+
+    def _combine_consecutive_words(self, words: list[Word], target_pos: str) -> list[Word]:
         """連続する指定品詞の単語を1つの単語に結合
 
         名詞・記号など、連続する同じ品詞の単語を1つに結合します。
@@ -345,13 +357,7 @@ class MorphologicalAnalyzer:
             current_word = words[i]
 
             # 結合対象かどうかを判定
-            is_target = False
-            if target_pos == "名詞":
-                # 名詞の場合は細分類もチェック
-                is_target = self._is_combinable_noun(current_word)
-            elif current_word.part_of_speech == target_pos:
-                # その他の品詞は品詞が一致すればOK
-                is_target = True
+            is_target = self._is_target_for_combination(current_word, target_pos)
 
             # 結合対象の場合、連続する単語を探す
             if is_target:
@@ -362,11 +368,7 @@ class MorphologicalAnalyzer:
                 while j < len(words):
                     next_word = words[j]
                     # 次の単語も結合対象かチェック
-                    is_next_target = False
-                    if target_pos == "名詞":
-                        is_next_target = self._is_combinable_noun(next_word)
-                    elif next_word.part_of_speech == target_pos:
-                        is_next_target = True
+                    is_next_target = self._is_target_for_combination(next_word, target_pos)
 
                     if is_next_target:
                         word_group.append(next_word)
