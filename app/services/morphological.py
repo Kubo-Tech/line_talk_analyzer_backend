@@ -134,32 +134,19 @@ class MorphologicalAnalyzer:
                 pos_detail1 = features[1] if len(features) > 1 else ""
                 pos_detail2 = features[2] if len(features) > 2 else ""
                 pos_detail3 = features[3] if len(features) > 3 else ""
-                base_form = features[6] if len(features) > 6 else node.surface  # 基本形
 
-                # 絵文字の場合は基本形ではなく表層形（絵文字そのまま）を使用
-                # neologd辞書は絵文字を日本語テキストに変換するため
-                # 例: 😭 -> 「大泣き」、😂 -> 「嬉し涙」
+                # 全ての品詞で表層形を使用（基本形は使用しない）
+                # 理由1: ユーザーが実際に使った言葉そのままをカウントすべき
+                # 理由2: 活用形の多様性を保持（「荒い」「荒く」「荒かった」を別々にカウント）
+                # 理由3: 誤解析の影響を軽減（「あらかわ」→「あらか」+「わ」の誤分割を防止）
+                # 理由4: neologd辞書の正規化を回避（「アオ」->「A-O」、絵文字->日本語変換など）
+                base_form = node.surface
+
+                # 絵文字を含む単語は品詞を「記号」に統一
+                # 理由: MeCabが絵文字を「記号」と「名詞」で交互に認識するため
+                #       品詞を統一しないと連続記号として結合できない
                 if contains_emoji(node.surface):
-                    base_form = node.surface
-                    # 絵文字を含む単語は品詞を「記号」に統一
-                    # 理由: MeCabが絵文字を「記号」と「名詞」で交互に認識するため
-                    #       品詞を統一しないと連続記号として結合できない
                     pos = "記号"
-
-                # 名詞の場合は基本形ではなく表層形を使用
-                # 理由1: 名詞には活用がないため、基本形を使う意味がない
-                # 理由2: neologd辞書が固有名詞をローマ字等に正規化することがある
-                #       例: 「アオ」-> 「A-O」、「ひろゆき」-> 「西村博之」
-                # 理由3: ユーザーが実際に使った言葉そのままをカウントすべき
-                if pos == "名詞":
-                    base_form = node.surface
-
-                # 形容詞の場合も基本形ではなく表層形を使用
-                # 理由1: 活用形の多様性を保持（「荒い」「荒く」「荒かった」を別々にカウント）
-                # 理由2: 誤解析の影響を軽減（「あらかわ」→「あらか」+「わ」の誤分割を防止）
-                # 理由3: ユーザーの実際の表現をそのまま反映
-                if pos == "形容詞":
-                    base_form = node.surface
 
                 word = Word(
                     surface=node.surface,
