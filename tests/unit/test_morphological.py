@@ -1118,3 +1118,104 @@ class TestConsecutiveSymbolCombination:
         # 句読点が単独で抽出されていないことを確認
         surfaces = [w.surface for w in words]
         assert "！" not in surfaces
+
+
+class TestAllPosSurfaceForm:
+    """全品詞で表層形を使用することのテスト"""
+
+    def test_interjection_uses_surface_form(self) -> None:
+        """感動詞が表層形を使用することを確認
+
+        感動詞は活用しないが、MeCabが基本形と表層形を変えることがある
+        表層形で統一することでユーザーが実際に使った言葉を記録する
+        """
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 感動詞の解析
+        words = analyzer.analyze("わあ、すごい")
+
+        # 感動詞を抽出
+        interjections = [w for w in words if w.part_of_speech == "感動詞"]
+
+        # 感動詞が抽出されることを確認
+        assert len(interjections) >= 1
+
+        # 表層形と基本形が一致することを確認（表層形を使用している）
+        for word in interjections:
+            assert word.base_form == word.surface
+
+    def test_all_pos_use_surface_form(self) -> None:
+        """すべての品詞で表層形を使用することを確認
+
+        名詞、形容詞、感動詞など、すべての品詞で表層形を使用する
+        これによりユーザーが実際に使った言葉を忠実に記録する
+        """
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 様々な品詞を含む文
+        words = analyzer.analyze("美しい花ああ")
+
+        # すべての単語で表層形と基本形が一致することを確認
+        for word in words:
+            assert (
+                word.base_form == word.surface
+            ), f"品詞:{word.part_of_speech}, 表層形:{word.surface}, 基本形:{word.base_form}"
+
+    def test_surface_form_preserves_actual_expression(self) -> None:
+        """表層形の使用により、ユーザーの実際の表現が保持されることを確認"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        # 同じ単語の異なる形
+        text1 = "すごい"
+        text2 = "すごく"
+        text3 = "すごかった"
+
+        words1 = analyzer.analyze(text1)
+        words2 = analyzer.analyze(text2)
+        words3 = analyzer.analyze(text3)
+
+        # それぞれ異なる表層形として記録される
+        if words1:
+            assert words1[0].base_form == "すごい"
+        if words2:
+            assert words2[0].base_form == "すごく"
+        if words3:
+            assert words3[0].base_form == "すごかっ"
+
+    def test_emoji_still_uses_surface_form(self) -> None:
+        """絵文字も表層形を使用することを確認（既存の動作の確認）"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        words = analyzer.analyze("😭")
+
+        assert len(words) == 1
+        assert words[0].surface == "😭"
+        assert words[0].base_form == "😭"  # 表層形と同じ
+
+    def test_noun_still_uses_surface_form(self) -> None:
+        """名詞も表層形を使用することを確認（既存の動作の確認）"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        words = analyzer.analyze("ガンダム")
+
+        # 名詞が抽出される
+        nouns = [w for w in words if w.part_of_speech == "名詞"]
+        assert len(nouns) >= 1
+
+        # すべての名詞で表層形を使用
+        for noun in nouns:
+            assert noun.base_form == noun.surface
+
+    def test_adjective_still_uses_surface_form(self) -> None:
+        """形容詞も表層形を使用することを確認（既存の動作の確認）"""
+        analyzer = MorphologicalAnalyzer(min_length=1)
+
+        words = analyzer.analyze("荒い")
+
+        # 形容詞が抽出される
+        adjectives = [w for w in words if w.part_of_speech == "形容詞"]
+        assert len(adjectives) >= 1
+
+        # すべての形容詞で表層形を使用
+        for adj in adjectives:
+            assert adj.base_form == adj.surface
