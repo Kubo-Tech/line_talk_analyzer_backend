@@ -34,7 +34,7 @@
 
 ### 3.1 除外パターンの追加
 
-`app/services/parser.py`の`META_PATTERNS`に以下の5パターンを追加：
+`app/services/parser.py`の`META_PATTERNS`に以下の6パターンを追加：
 
 ```python
 META_PATTERNS = [

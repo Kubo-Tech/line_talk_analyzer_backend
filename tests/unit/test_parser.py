@@ -93,13 +93,12 @@ class TestLineMessageParser:
 22:15	foo子	よろしく
 22:16	hoge山fuga太郎	[動画]
 22:17	piyo田	[ファイル]
-22:18	foo子	[ボイスメッセージ]
 """
         file = StringIO(content)
         parser = LineMessageParser()
         messages = parser.parse(file)
 
-        # スタンプ、写真、動画、ファイル、ボイスメッセージは除外される
+        # スタンプ、写真、動画、ファイルは除外される
         assert len(messages) == 2
         assert messages[0].content == "こんにちは"
         assert messages[1].content == "よろしく"
@@ -487,6 +486,7 @@ https://animestore.docomo.ne.jp/animestore/cd?partId=20230034&ref=line"
 13:56	太郎	☎ 通話時間 0:38
 14:00	太郎	通常のメッセージ
 19:34	花子	☎ 通話をキャンセルしました
+20:05	りんな	[ボイスメッセージ]
 21:24	次郎	☎ グループ通話が開始されました。
 21:30	花子	こんばんは
 """
@@ -494,7 +494,7 @@ https://animestore.docomo.ne.jp/animestore/cd?partId=20230034&ref=line"
         parser = LineMessageParser()
         messages = parser.parse(file)
 
-        # 通話関連メッセージが除外され、通常のメッセージのみ残る
+        # 通話関連メッセージとボイスメッセージが除外され、通常のメッセージのみ残る
         assert len(messages) == 2
         assert messages[0].content == "通常のメッセージ"
         assert messages[0].user == "太郎"
