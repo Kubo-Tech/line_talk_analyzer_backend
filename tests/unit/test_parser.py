@@ -474,3 +474,49 @@ https://animestore.docomo.ne.jp/animestore/cd?partId=20230034&ref=line"
         assert len(messages) == 2
         assert messages[0].content == "今日の記事 とても良かった"
         assert messages[1].content == "明日は に行く予定"
+
+    def test_parse_exclude_call_messages(self) -> None:
+        """通話関連のシステムメッセージが除外されることをテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+13:49	太郎	☎ 不在着信
+13:55	花子	☎ 通話に応答がありませんでした
+13:56	太郎	☎ 通話時間 0:38
+14:00	太郎	通常のメッセージ
+19:34	花子	☎ 通話をキャンセルしました
+20:05	りんな	[ボイスメッセージ]
+21:24	次郎	☎ グループ通話が開始されました。
+21:30	花子	こんばんは
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # 通話関連メッセージとボイスメッセージが除外され、通常のメッセージのみ残る
+        assert len(messages) == 2
+        assert messages[0].content == "通常のメッセージ"
+        assert messages[0].user == "太郎"
+        assert messages[1].content == "こんばんは"
+        assert messages[1].user == "花子"
+
+    def test_parse_call_messages_variations(self) -> None:
+        """様々な通話時間パターンのテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+13:49	ユーザー1	☎ 通話時間 0:05
+13:50	ユーザー2	☎ 通話時間 1:23
+13:51	ユーザー3	☎ 通話時間 12:45
+13:52	ユーザー4	通話終わりました
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # 様々な通話時間パターンが除外され、通常のメッセージのみ残る
+        assert len(messages) == 1
+        assert messages[0].content == "通話終わりました"
+        assert messages[0].user == "ユーザー4"
