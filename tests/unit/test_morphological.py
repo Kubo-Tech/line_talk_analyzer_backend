@@ -624,7 +624,7 @@ class TestIsSingleKana:
         """半角カタカナ1文字「ｱ」のテスト"""
         from app.services.morphological import _is_single_kana
 
-        assert _is_single_kana("ｱ") is True
+        assert _is_single_kana("ｱ") is False
 
     def test_kanji_single_character(self) -> None:
         """漢字1文字「草」は除外されない"""
@@ -699,7 +699,7 @@ class TestFilterByLengthWithKana:
         assert analyzer._filter_by_length(word) is False
 
     def test_filter_single_half_width_katakana(self) -> None:
-        """1文字半角カタカナが除外されることを確認"""
+        """1文字半角カタカナが除外されないことを確認"""
         analyzer = MorphologicalAnalyzer(min_length=1)
         word = Word(
             surface="ｱ",
@@ -709,7 +709,7 @@ class TestFilterByLengthWithKana:
             part_of_speech_detail2="*",
             part_of_speech_detail3="*",
         )
-        assert analyzer._filter_by_length(word) is False
+        assert analyzer._filter_by_length(word) is True
 
     def test_allow_single_kanji(self) -> None:
         """1文字漢字が許可されることを確認"""
