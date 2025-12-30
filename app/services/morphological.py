@@ -488,8 +488,4 @@ def _is_single_kana(text: str) -> bool:
     if 0x30A0 <= code_point <= 0x30FF:
         return True
 
-    # 半角カタカナ（U+FF65-U+FF9F）
-    if 0xFF65 <= code_point <= 0xFF9F:
-        return True
-
     return False

@@ -520,3 +520,78 @@ https://animestore.docomo.ne.jp/animestore/cd?partId=20230034&ref=line"
         assert len(messages) == 1
         assert messages[0].content == "通話終わりました"
         assert messages[0].user == "ユーザー4"
+
+    def test_parse_android_call_messages(self) -> None:
+        """Android版の通話関連メッセージが除外されることをテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+00:18	太郎	不在着信
+00:19	太郎	通話に応答がありませんでした
+00:20	太郎	通話時間 2:49
+00:21	太郎	通話をキャンセルしました。
+00:22	太郎	通常のメッセージ1
+00:23	太郎	グループ音声通話が開始されました。
+00:24	太郎	グループビデオ通話が開始されました。
+00:25	太郎	グループ通話が終了しました。
+00:26	太郎	通常のメッセージ2
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # Android版の通話関連メッセージが除外され、通常のメッセージのみ残る
+        assert len(messages) == 2
+        assert messages[0].content == "通常のメッセージ1"
+        assert messages[0].user == "太郎"
+        assert messages[1].content == "通常のメッセージ2"
+        assert messages[1].user == "太郎"
+
+    def test_parse_mixed_iphone_android_call_messages(self) -> None:
+        """iPhone版とAndroid版の通話メッセージが混在する場合のテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+00:18	太郎	☎ 不在着信
+00:19	花子	不在着信
+00:20	次郎	☎ 通話時間 1:23
+00:21	太郎	通話時間 2:49
+00:22	花子	通常のメッセージ1
+00:23	次郎	☎ グループ通話が開始されました。
+00:24	太郎	グループ音声通話が開始されました。
+00:25	花子	グループビデオ通話が開始されました。
+00:26	次郎	グループ通話が終了しました。
+00:27	太郎	通常のメッセージ2
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # iPhone版・Android版どちらの通話メッセージも除外される
+        assert len(messages) == 2
+        assert messages[0].content == "通常のメッセージ1"
+        assert messages[0].user == "花子"
+        assert messages[1].content == "通常のメッセージ2"
+        assert messages[1].user == "太郎"
+
+    def test_parse_group_call_end_without_user(self) -> None:
+        """iPhone版のグループ通話終了メッセージ（発言者なし）のテスト"""
+        content = """[LINE] テストのトーク履歴
+保存日時：2024/08/01 00:00
+
+2024/08/01(木)
+01:39	太郎	☎ グループ通話が開始されました。
+01:40		グループ通話が終了しました。
+01:41	花子	終わったね
+"""
+        file = StringIO(content)
+        parser = LineMessageParser()
+        messages = parser.parse(file)
+
+        # ユーザー名が空のメッセージはシステムメッセージとして除外される
+        # グループ通話開始メッセージも除外される
+        assert len(messages) == 1
+        assert messages[0].content == "終わったね"
+        assert messages[0].user == "花子"
