@@ -1,5 +1,9 @@
 /talk/*.txt
 
+# 環境変数ファイル
+.env
+.env.local
+
 # Python
 __pycache__/
 *.py[cod]
