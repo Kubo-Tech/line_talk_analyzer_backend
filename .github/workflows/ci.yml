@@ -32,6 +32,32 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y mecab libmecab-dev mecab-ipadic-utf8
+        # Install mecab-ipadic-neologd (pinned to specific commit for security and reproducibility)
+        git clone https://github.com/neologd/mecab-ipadic-neologd.git /tmp/neologd
+        cd /tmp/neologd
+        # Pin to the latest stable commit as of 2026-01-01
+        # Update this hash periodically to get the latest dictionary
+        git checkout abc61e33d8be3d0ead202e6b1df064c72d5ccf11
+        cd -
+        sudo /tmp/neologd/bin/install-mecab-ipadic-neologd -n -y
+        # Find the installed dictionary path
+        DICDIR=$(mecab-config --dicdir)
+        NEOLOGD_PATH=$(find $DICDIR -name "mecab-ipadic-neologd" -type d | head -n 1)
+        echo "Neologd dictionary path: $NEOLOGD_PATH"
+        # Create symlink if needed
+        if [ ! -d "/usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd" ]; then
+          sudo mkdir -p /usr/lib/x86_64-linux-gnu/mecab/dic
+          sudo ln -s $NEOLOGD_PATH /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd
+        fi
+        # Create mecabrc if it doesn't exist
+        if [ ! -f /usr/local/etc/mecabrc ]; then
+          sudo mkdir -p /usr/local/etc
+          echo "dicdir = $NEOLOGD_PATH" | sudo tee /usr/local/etc/mecabrc
+        fi
+        # Verify installation
+        mecab -v
+        ls -la /usr/lib/x86_64-linux-gnu/mecab/dic/ || true
+        cat /usr/local/etc/mecabrc || true
 
     - name: Install dependencies
       run: |
@@ -69,9 +95,9 @@ jobs:
         echo "::endgroup::"
 
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
