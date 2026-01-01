@@ -28,10 +28,48 @@ jobs:
           ci-${{ runner.os }}-pip-
           ${{ runner.os }}-pip-
 
+    - name: Install system dependencies (MeCab)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mecab libmecab-dev mecab-ipadic-utf8
+        # Install mecab-ipadic-neologd (pinned to specific commit for security and reproducibility)
+        git clone https://github.com/neologd/mecab-ipadic-neologd.git /tmp/neologd
+        cd /tmp/neologd
+        # Pin to the latest stable commit as of 2026-01-01
+        # Update this hash periodically to get the latest dictionary
+        NEOLOGD_COMMIT=abc61e33d8be3d0ead202e6b1df064c72d5ccf11
+        if git rev-parse --verify "${NEOLOGD_COMMIT}^{commit}" >/dev/null 2>&1; then
+          git checkout "${NEOLOGD_COMMIT}"
+        else
+          echo "Specified mecab-ipadic-neologd commit hash ${NEOLOGD_COMMIT} does not exist in the cloned repository." >&2
+          exit 1
+        fi
+        cd -
+        sudo /tmp/neologd/bin/install-mecab-ipadic-neologd -n -y
+        # Find the installed dictionary path
+        DICDIR=$(mecab-config --dicdir)
+        NEOLOGD_PATH=$(find $DICDIR -name "mecab-ipadic-neologd" -type d | head -n 1)
+        echo "Neologd dictionary path: $NEOLOGD_PATH"
+        # Create symlink if needed
+        if [ ! -d "/usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd" ]; then
+          sudo mkdir -p /usr/lib/x86_64-linux-gnu/mecab/dic
+          sudo ln -s $NEOLOGD_PATH /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd
+        fi
+        # Create mecabrc if it doesn't exist
+        if [ ! -f /usr/local/etc/mecabrc ]; then
+          sudo mkdir -p /usr/local/etc
+          echo "dicdir = $NEOLOGD_PATH" | sudo tee /usr/local/etc/mecabrc
+        fi
+        # Verify installation
+        mecab -v
+        ls -la /usr/lib/x86_64-linux-gnu/mecab/dic/ || true
+        cat /usr/local/etc/mecabrc || true
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-ci.txt
+        pip install -r requirements.txt
 
     - name: Run isort check
       run: |
@@ -55,3 +93,18 @@ jobs:
         echo "::group::mypy check"
         mypy app/ --config-file=mypy.ini
         echo "::endgroup::"
+
+    - name: Run tests
+      run: |
+        echo "::group::pytest"
+        pytest tests/ -v -m "not e2e" --cov=app --cov-report=xml --cov-report=term
+        echo "::endgroup::"
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}

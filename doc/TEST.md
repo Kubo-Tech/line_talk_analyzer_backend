@@ -54,6 +54,9 @@
    - 期間指定での解析（2025年データ）
    - 全期間解析
    - ユーザー別解析結果の検証
+   - **注意**: 実データを使用するE2Eテストは、実際のトーク履歴ファイル（`talk/sample.txt`）が必要です
+   - CI環境では`-m "not e2e"`オプションでスキップされます
+   - ローカルでテストする場合は、`talk/sample.txt`を配置してから実行してください
 
 ## テストデータ
 
@@ -75,16 +78,20 @@
   - isortチェック（コード整形確認）
   - flake8（Lintチェック）
   - mypy（型チェック）
-  - ※テスト実行はローカルで実施（MeCab依存のため）
+  - pytest（全テスト実行）
+  - カバレッジレポート生成・アップロード
 
 ## テスト実行方法
 
 ```bash
-# 全テスト実行
+# 全テスト実行（E2Eを除く）
+pytest -m "not e2e"
+
+# 全テスト実行（E2Eを含む、要sample.txt）
 pytest
 
 # カバレッジ付き実行
-pytest --cov=app --cov-report=html
+pytest -m "not e2e" --cov=app --cov-report=html
 
 # 特定レベルのみ実行
 pytest tests/unit/
@@ -96,4 +103,7 @@ pytest tests/unit/test_parser.py
 
 # 詳細出力
 pytest -v
+
+# E2Eテストのみ実行（実データ必要）
+pytest -m e2e
 ```
