@@ -103,12 +103,12 @@
     // GitHub Copilot Chatの設定
     "github.copilot.chat.reviewSelection.instructions": [
         {
-            "file": "./doc/コーディング規約.md"
+            "file": "./doc/CODING_RULE.md"
         }
     ],
     "github.copilot.chat.codeGeneration.instructions": [
         {
-            "file": "./doc/コーディング規約.md"
+            "file": "./doc/CODING_RULE.md"
         },
         {
             "file": "./doc/SPEC.md"
