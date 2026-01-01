@@ -110,8 +110,5 @@
         {
             "file": "./doc/CODING_RULE.md"
         },
-        {
-            "file": "./doc/SPEC.md"
-        },
     ],
 }
