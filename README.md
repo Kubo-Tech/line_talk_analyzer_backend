@@ -15,6 +15,13 @@ LINEのトーク履歴を解析し、1年間の流行語大賞を表示するWeb
 - REST API（JSON形式）
 - CORS対応
 
+### 各種リンク
+
+- [LINE流行語大賞](https://line-talk-analyzer-frontend.vercel.app/)
+- [【流行語大賞】LINEのトーク履歴を解析して自分たちだけの流行語大賞を発表するアプリを作った](https://qiita.com/KuboTech/items/2f337b7dc5b39d88e08b)
+- [フロントエンドリポジトリ](https://github.com/Kubo-Tech/line_talk_analyzer_frontend)
+- [renderダッシュボード](https://dashboard.render.com/web/srv-d53vcpruibrs73859arg)
+
 ### 技術スタック
 
 - **言語**: Python 3.11+
