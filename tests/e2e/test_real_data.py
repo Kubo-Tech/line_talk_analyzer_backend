@@ -25,8 +25,14 @@ from app.services.analyzer import TalkAnalyzer
 TOP_N = 100
 
 
+@pytest.mark.e2e
 class TestRealDataAnalysis:
-    """実際のトーク履歴を使用した解析テスト"""
+    """実際のトーク履歴を使用した解析テスト
+    
+    注意: このテストは実際のトーク履歴ファイル(talk/sample.txt)を必要とします。
+    CI環境では`-m "not e2e"`オプションでスキップされます。
+    ローカルで実行する場合は、talk/sample.txtを配置してください。
+    """
 
     @pytest.fixture
     def sample_file_path(self) -> Path:
