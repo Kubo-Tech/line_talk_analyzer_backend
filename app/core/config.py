@@ -7,6 +7,8 @@ import os
 import warnings
 from functools import lru_cache
 
+from app.__version__ import __app_name__, __version__
+
 
 class Settings:
     """アプリケーション設定クラス
@@ -17,8 +19,8 @@ class Settings:
     def __init__(self) -> None:
         """設定を初期化する"""
         # アプリケーション基本情報
-        self.APP_NAME: str = os.getenv("APP_NAME", "LINE Talk Analyzer")
-        self.APP_VERSION: str = os.getenv("APP_VERSION", "1.0.0")
+        self.APP_NAME: str = os.getenv("APP_NAME", __app_name__)
+        self.APP_VERSION: str = os.getenv("APP_VERSION", __version__)
 
         # CORS設定
         self.ALLOWED_ORIGINS: list[str] = self._parse_origins(

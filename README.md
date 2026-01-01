@@ -51,20 +51,17 @@ APIサーバーが起動します：
 
 環境変数の設定は**オプション**です。設定しない場合、デフォルト値が使用されます。
 
-変更したい場合は`.env`ファイルを作成してください：
+変更したい場合は`.env.example`をコピーして`.env`ファイルを作成してください：
 
-```env
-APP_NAME=LINE Talk Analyzer
-APP_VERSION=1.0.0
-ALLOWED_ORIGINS=http://localhost:3000
-MAX_FILE_SIZE_MB=50
-DEFAULT_TOP_N=50
-MIN_WORD_LENGTH=1
-MIN_MESSAGE_LENGTH=2
-ENABLE_DEMO_MODE=true
-DEMO_TRIGGER_FILENAME=__DEMO__.txt
-DEMO_RESPONSE_DELAY_SECONDS=3.0
+```bash
+cp .env.example .env
+# .envファイルを編集
 ```
+
+**注意**:
+- `.env`ファイルはGit管理対象外です（機密情報の保護）
+- アプリケーション名とバージョンは`app/__version__.py`から自動取得されます
+- 環境変数で上書きしない限り、デフォルト値が使用されます
 
 詳細は[CONFIG.md](doc/CONFIG.md)を参照してください。
 
