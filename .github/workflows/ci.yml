@@ -37,7 +37,13 @@ jobs:
         cd /tmp/neologd
         # Pin to the latest stable commit as of 2026-01-01
         # Update this hash periodically to get the latest dictionary
-        git checkout abc61e33d8be3d0ead202e6b1df064c72d5ccf11
+        NEOLOGD_COMMIT=abc61e33d8be3d0ead202e6b1df064c72d5ccf11
+        if git rev-parse --verify "${NEOLOGD_COMMIT}^{commit}" >/dev/null 2>&1; then
+          git checkout "${NEOLOGD_COMMIT}"
+        else
+          echo "Specified mecab-ipadic-neologd commit hash ${NEOLOGD_COMMIT} does not exist in the cloned repository." >&2
+          exit 1
+        fi
         cd -
         sudo /tmp/neologd/bin/install-mecab-ipadic-neologd -n -y
         # Find the installed dictionary path
@@ -101,3 +107,4 @@ jobs:
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
